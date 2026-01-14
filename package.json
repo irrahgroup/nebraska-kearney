@@ -1,27 +1,24 @@
 {
-  "name": "n8n-nodes-zapi",
+  "name": "@irrahtech/n8n-nodes-zapi",
   "version": "0.1.0",
   "description": "n8n community node to integrate with Z-API (WhatsApp messaging).",
   "license": "MIT",
-  "homepage": "https://github.com/leonsnw/n8n-nodes-zapi",
+  "homepage": "https://github.com/irrahgroup/nebraska-kearney",
   "keywords": [
     "n8n-community-node-package",
     "n8n",
     "z-api",
     "whatsapp"
   ],
-  "author": {
-    "name": "Connect Think",
-    "email": "136640590+leonsnw@users.noreply.github.com"
-  },
   "repository": {
     "type": "git",
-    "url": "https://github.com/leonsnw/n8n-nodes-zapi.git"
+    "url": "https://github.com/irrahgroup/nebraska-kearney.git"
   },
   "scripts": {
     "build": "n8n-node build",
     "build:watch": "tsc --watch",
     "dev": "n8n-node dev",
+    "rise": "npm version patch && npm publish",
     "lint": "n8n-node lint",
     "lint:fix": "n8n-node lint --fix",
     "release": "n8n-node release",
