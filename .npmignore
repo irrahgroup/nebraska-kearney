@@ -1,0 +1,5 @@
+# Ignorar tudo, exceto o que está explicitamente permitido no `files` do package.json
+*
+!dist/
+!package.json
+!README.md

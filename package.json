@@ -1,5 +1,5 @@
 {
-  "name": "@irrahtech/n8n-nodes-zapi",
+  "name": "@arquiteturazapi/n8n-nodes-zapi",
   "version": "0.1.0",
   "description": "n8n community node to integrate with Z-API (WhatsApp messaging).",
   "license": "MIT",
@@ -18,6 +18,7 @@
     "build": "n8n-node build",
     "build:watch": "tsc --watch",
     "dev": "n8n-node dev",
+    "build:npm": "tsup",
     "rise": "npm version patch && npm publish",
     "lint": "n8n-node lint",
     "lint:fix": "n8n-node lint --fix",
@@ -43,6 +44,7 @@
     "eslint": "9.32.0",
     "prettier": "3.6.2",
     "release-it": "^19.0.4",
+    "tsup": "^8.5.1",
     "typescript": "5.9.2"
   },
   "peerDependencies": {
