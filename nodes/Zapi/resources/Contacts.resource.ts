@@ -8,14 +8,14 @@ import { NodeOperationError } from 'n8n-workflow';
 
 export const contactsProperties: INodeProperties[] = [
 	{
-		displayName: 'Phone',
+		displayName: 'Telefone',
 		name: 'phone',
 		type: 'string',
 		default: '',
 		required: true,
 		placeholder: '5511999999999',
 		description:
-			'Contact phone number in international format (digits only). Example: 5511999999999.',
+			'Número do contato, em formato internacional, apenas dígitos. Exemplo: 5511999999999.',
 		displayOptions: {
 			show: {
 				resource: ['contacts'],
@@ -32,13 +32,18 @@ export async function executeContacts(
 	operation: string,
 	baseUrl: string,
 ): Promise<IDataObject | IDataObject[]> {
+
+	// ---- OPERAÇÕES QUE USAM "phone" ----
 	if (['phoneExists', 'getContactMetadata', 'getContactProfilePicture'].includes(operation)) {
+
 		const phone = this.getNodeParameter('phone', itemIndex) as string;
 
 		if (!phone) {
-			throw new NodeOperationError(this.getNode(), 'A phone number is required for this operation.', {
-				itemIndex,
-			});
+			throw new NodeOperationError(
+				this.getNode(),
+				'É necessário informar o telefone para esta operação.',
+				{ itemIndex },
+			);
 		}
 
 		if (operation === 'phoneExists') {
@@ -72,20 +77,26 @@ export async function executeContacts(
 		}
 	}
 
+	// ---- OPERAÇÃO LISTAR CONTATOS ----
 	if (operation === 'listContacts') {
 		const url = `${baseUrl}/contacts`;
-		const response = await this.helpers.httpRequestWithAuthentication.call(this, 'zapiApi', {
-			method: 'GET',
-			url,
-			qs: { page: 1, pageSize: 50 },
-			json: true,
-		});
+		const response = await this.helpers.httpRequestWithAuthentication.call(
+			this,
+			'zapiApi',
+			{
+				method: 'GET',
+				url,
+				qs: { page: 1, pageSize: 50 },
+				json: true,
+			},
+		);
 		return [{ json: response }];
 	}
 
+	// ---- OPERAÇÃO DESCONHECIDA ----
 	throw new NodeOperationError(
 		this.getNode(),
-		`Operation not supported for the "contacts" resource: ${operation}`,
+		`Operação não suportada para o recurso "contacts": ${operation}`,
 		{ itemIndex },
 	);
 }

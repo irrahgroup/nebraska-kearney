@@ -6,42 +6,14 @@ import type {
 } from 'n8n-workflow';
 import { NodeOperationError } from 'n8n-workflow';
 
-interface QrCodeResponse {
-	connected?: boolean;
-	qrCode?: string;
-	[key: string]: unknown;
-}
-
-function getErrorMessage(error: unknown): string {
-	if (error instanceof Error) return error.message;
-	if (typeof error === 'string') return error;
-	try {
-		return JSON.stringify(error);
-	} catch {
-		return String(error);
-	}
-}
-
-function toBuffer(data: unknown): Buffer {
-	if (Buffer.isBuffer(data)) return data;
-
-	if (data instanceof ArrayBuffer) return Buffer.from(data);
-
-	if (ArrayBuffer.isView(data)) {
-		return Buffer.from(data.buffer, data.byteOffset, data.byteLength);
-	}
-
-	throw new Error('Unexpected binary response format.');
-}
-
 export const instanceProperties: INodeProperties[] = [
 	{
-		displayName: 'Confirmation',
+		displayName: 'Confirmação',
 		name: 'confirmDisconnect',
 		type: 'boolean',
 		default: false,
 		required: true,
-		description: 'Whether to confirm you want to disconnect the phone from this Z-API instance',
+		description: 'Whether Marque esta opção para confirmar que deseja desconectar o telefone desta instância Z-API',
 		displayOptions: {
 			show: {
 				resource: ['instance'],
@@ -49,17 +21,18 @@ export const instanceProperties: INodeProperties[] = [
 			},
 		},
 	},
+
 	{
 		displayName: 'Instance ID',
 		name: 'instanceId',
 		type: 'string',
 		default: '',
 		required: true,
-		description: 'Z-API instance ID',
+		description: 'ID da instância Z-API',
 		displayOptions: {
 			show: {
 				resource: ['instance'],
-				operation: ['getQRCodeBytes', 'getQRCodeImage'],
+				operation: ['getQRCodeBytes', 'getQRCodeImage','getPhoneCode'],
 			},
 		},
 	},
@@ -70,28 +43,29 @@ export const instanceProperties: INodeProperties[] = [
 		typeOptions: { password: true },
 		default: '',
 		required: true,
-		description: 'Z-API instance token',
+		description: 'Token da instância Z-API',
 		displayOptions: {
 			show: {
 				resource: ['instance'],
-				operation: ['getQRCodeBytes', 'getQRCodeImage'],
+				operation: ['getQRCodeBytes', 'getQRCodeImage','getPhoneCode'],
 			},
 		},
 	},
 	{
-		displayName: 'Phone Number',
-		name: 'phoneNumber',
-		type: 'string',
-		default: '',
-		required: true,
-		description: 'Phone number with country and area code (e.g. 5511999999999)',
-		displayOptions: {
+	displayName: 'Phone Number',
+	name: 'phoneNumber',
+	type: 'string',
+	default: '',
+	required: true,
+	description: 'Número de telefone com DDI e DDD (ex: 5511999999999)',
+	displayOptions: {
 			show: {
 				resource: ['instance'],
-				operation: ['getPhoneCode'],
+				operation: ['getQRCodeBytes', 'getQRCodeImage','getPhoneCode'],
 			},
 		},
 	},
+
 ];
 
 export async function executeInstance(
@@ -102,12 +76,15 @@ export async function executeInstance(
 	baseUrl: string,
 ): Promise<IDataObject | IDataObject[]> {
 	if (operation === 'disconnectInstance') {
-		const confirmDisconnect = this.getNodeParameter('confirmDisconnect', itemIndex) as boolean;
+		const confirmDisconnect = this.getNodeParameter(
+			'confirmDisconnect',
+			itemIndex,
+		) as boolean;
 
 		if (!confirmDisconnect) {
 			throw new NodeOperationError(
 				this.getNode(),
-				'You must confirm to disconnect the phone from the instance.',
+				'É necessário marcar a confirmação para desconectar o telefone da instância.',
 				{ itemIndex },
 			);
 		}
@@ -131,22 +108,31 @@ export async function executeInstance(
 		return response as IDataObject;
 	}
 
+	// Operação: obter QR Code da instância
 	if (operation === 'getQRCodeBytes') {
 		const instanceId = this.getNodeParameter('instanceId', itemIndex) as string;
 		const instanceToken = this.getNodeParameter('instanceToken', itemIndex) as string;
 
 		if (!instanceId || !instanceToken) {
-			throw new NodeOperationError(this.getNode(), 'Instance ID and Token are required.', {
-				itemIndex,
-			});
+			throw new NodeOperationError(
+				this.getNode(),
+				'Instance ID e Token são obrigatórios.',
+				{ itemIndex }
+			);
 		}
 
-		const qrResponse = (await this.helpers.httpRequestWithAuthentication.call(this, 'zapiApi', {
-			method: 'GET',
-			url: `${baseUrl}/qr-code`,
-			json: true,
-		})) as QrCodeResponse;
+		// Buscar QR Code
+		const qrResponse = (await this.helpers.httpRequestWithAuthentication.call(
+			this,
+			'zapiApi',
+			{
+				method: 'GET',
+				url: `${baseUrl}/qr-code`,
+				json: true,
+			}
+		)) as IDataObject;
 
+		// CASO A INSTÂNCIA JÁ ESTEJA CONECTADA
 		if (qrResponse.connected === true) {
 			return [
 				{
@@ -158,53 +144,51 @@ export async function executeInstance(
 			];
 		}
 
-		const qrCode = qrResponse.qrCode;
+		// CASO O QR ESTEJA DISPONÍVEL
+		const qrCode = qrResponse.qrCode as string | undefined;
 
 		if (!qrCode) {
 			throw new NodeOperationError(
 				this.getNode(),
-				`Could not retrieve the QR Code (response: ${JSON.stringify(qrResponse)})`,
-				{ itemIndex },
+				`Não foi possível obter o QR Code (resposta: ${JSON.stringify(qrResponse)})`,
+				{ itemIndex }
 			);
 		}
 
 		return [
 			{
 				json: {
-					qrCode,
+					qrCode, // base64
 					status: 'QRCODE',
 				},
 			},
 		];
 	}
 
+	// Operação: obter QR Code da instância (imagem)
 	if (operation === 'getQRCodeImage') {
-		const instanceId = this.getNodeParameter('instanceId', itemIndex) as string;
-		const instanceToken = this.getNodeParameter('instanceToken', itemIndex) as string;
 
-		if (!instanceId || !instanceToken) {
-			throw new NodeOperationError(this.getNode(), 'Instance ID and Token are required.', {
-				itemIndex,
-			});
+		// Buscar QR Code como imagem
+		const qrResponse = await this.helpers.httpRequestWithAuthentication.call(
+			this,
+			'zapiApi',
+			{
+				method: 'GET',
+				url: `${baseUrl}/qr-code/image`,
+				encoding: 'arraybuffer',
+			}
+		);
+
+		// Converter imagem para base64
+		let qrCodeBuffer: Buffer;
+		if (typeof qrResponse === 'string') {
+			qrCodeBuffer = Buffer.from(qrResponse);
+		} else if (qrResponse instanceof Uint8Array) {
+			qrCodeBuffer = Buffer.from(qrResponse);
+		} else {
+			qrCodeBuffer = Buffer.from(qrResponse as ArrayBufferLike);
 		}
-
-		const qrBinary = await this.helpers.httpRequestWithAuthentication.call(this, 'zapiApi', {
-			method: 'GET',
-			url: `${baseUrl}/qr-code/image`,
-			encoding: 'arraybuffer',
-		});
-
-		let qrCodeBase64: string;
-
-		try {
-			qrCodeBase64 = toBuffer(qrBinary).toString('base64');
-		} catch (error: unknown) {
-			throw new NodeOperationError(
-				this.getNode(),
-				`Could not convert QR Code image to base64: ${getErrorMessage(error)}`,
-				{ itemIndex },
-			);
-		}
+		const qrCodeBase64 = qrCodeBuffer.toString('base64');
 
 		return [
 			{
@@ -215,29 +199,40 @@ export async function executeInstance(
 		];
 	}
 
+	// Operação: obter phone code / validar número
 	if (operation === 'getPhoneCode') {
 		const phoneNumber = this.getNodeParameter('phoneNumber', itemIndex) as string;
 
 		if (!phoneNumber) {
-			throw new NodeOperationError(this.getNode(), 'Phone number is required.', { itemIndex });
+			throw new NodeOperationError(
+				this.getNode(),
+				'É necessário informar o número de telefone.',
+				{ itemIndex }
+			);
 		}
 
-		const phoneCodeResponse = await this.helpers.httpRequestWithAuthentication.call(this, 'zapiApi', {
-			method: 'GET',
-			url: `${baseUrl}/phone-code/${phoneNumber}`,
-			json: true,
-		});
+		// Buscar phone code
+		const phoneCodeResponse = await this.helpers.httpRequestWithAuthentication.call(
+			this,
+			'zapiApi',
+			{
+				method: 'GET',
+				url: `${baseUrl}/phone-code/${phoneNumber}`,
+				json: true,
+			}
+		);
 
 		return [
 			{
-				json: phoneCodeResponse as IDataObject,
+				json: phoneCodeResponse,
 			},
 		];
 	}
 
+
 	throw new NodeOperationError(
 		this.getNode(),
-		`Unsupported operation for the "instance" resource: ${operation}`,
+		`Operação não suportada para o recurso "instance": ${operation}`,
 		{ itemIndex },
 	);
 }

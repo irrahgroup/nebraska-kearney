@@ -50,6 +50,7 @@ export class Zapi implements INodeType {
 			},
 		],
 		properties: [
+			// Resources
 			{
 				displayName: 'Resource',
 				name: 'resource',
@@ -105,6 +106,7 @@ export class Zapi implements INodeType {
 				default: 'messages',
 				description: 'Choose which Z-API resource you want to use',
 			},
+			// Operations for API
 			{
 			displayName: 'Operation',
 			name: 'operation',
@@ -124,6 +126,7 @@ export class Zapi implements INodeType {
 			default: 'makeApiCall',
 			description: 'Generic API operation',
 			},
+			// Operations for messages
 			{
 				displayName: 'Operation',
 				name: 'operation',
@@ -154,6 +157,8 @@ export class Zapi implements INodeType {
 				default: 'sendText',
 				description: 'Specific action for the Messages resource',
 			},
+
+			// Operations for groups
 			{
 				displayName: 'Operation',
 				name: 'operation',
@@ -180,6 +185,8 @@ export class Zapi implements INodeType {
 				default: 'createGroup',
 				description: 'Specific action for the Groups resource',
 			},
+
+			// Operations for chats
 			{
 				displayName: 'Operation',
 				name: 'operation',
@@ -197,6 +204,8 @@ export class Zapi implements INodeType {
 				default: 'archiveChat',
 				description: 'Specific action for the Chats resource',
 			},
+
+			// Operations for contacts
 			{
 				displayName: 'Operation',
 				name: 'operation',
@@ -214,6 +223,8 @@ export class Zapi implements INodeType {
 				default: 'phoneExists',
 				description: 'Specific action for the Contacts resource',
 			},
+
+			// Operations for products
 			{
 				displayName: 'Operation',
 				name: 'operation',
@@ -232,6 +243,8 @@ export class Zapi implements INodeType {
 				default: 'upsertProduct',
 				description: 'Specific action for the Products resource',
 			},
+
+			// Operations for queue
 			{
 				displayName: 'Operation',
 				name: 'operation',
@@ -247,6 +260,8 @@ export class Zapi implements INodeType {
 				default: 'deleteQueueMessage',
 				description: 'Specific action for the Message Queue resource',
 			},
+
+			// Operations for status
 			{
 				displayName: 'Operation',
 				name: 'operation',
@@ -262,6 +277,8 @@ export class Zapi implements INodeType {
 				default: 'postStatusImage',
 				description: 'Specific action for the Status resource',
 			},
+
+			// Operations for instance
 			{
 				displayName: 'Operation',
 				name: 'operation',
@@ -281,6 +298,7 @@ export class Zapi implements INodeType {
 				description: 'Specific action for the Instance resource',
 			},
 
+			// Properties for each resource (CORRETO: spread)
 			...messagesProperties,
 			...groupsProperties,
 			...chatsProperties,

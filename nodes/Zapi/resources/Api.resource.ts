@@ -139,7 +139,7 @@ export const apiProperties: INodeProperties[] = [
 		name: 'apiCallFullResponse',
 		type: 'boolean',
 		default: false,
-		description: 'Whether to return the full API response (statusCode, headers, and body)',
+		description: 'Whether to return statusCode + headers + body',
 		displayOptions: {
 			show: {
 				resource: ['api'],
@@ -211,26 +211,36 @@ export async function executeApi(
 	if (!endpointInput) {
 		throw new NodeOperationError(this.getNode(), 'Endpoint is required.', { itemIndex });
 	}
+
+	// Fixed collections
 	const queryFc = this.getNodeParameter('apiCallQuery', itemIndex, {}) as IDataObject;
 	const headersFc = this.getNodeParameter('apiCallHeaders', itemIndex, {}) as IDataObject;
+
 	const qs = toKeyValueObject((queryFc.parameters as IDataObject[]) ?? []);
 	const headers = toKeyValueObject((headersFc.headers as IDataObject[]) ?? []);
+
+	// Body JSON
 	const bodyParam = this.getNodeParameter('apiCallBody', itemIndex, {}) as unknown;
 	const body = parseJsonParameter(bodyParam, () => {
 		return new NodeOperationError(this.getNode(), 'Invalid JSON body.', { itemIndex });
 	});
+
+	// URL: accept full URL or relative path
 	const isFullUrl = /^https?:\/\//i.test(endpointInput);
 	const endpoint = endpointInput.startsWith('/') ? endpointInput : `/${endpointInput}`;
 	const url = isFullUrl ? endpointInput : `${baseUrl}${endpoint}`;
+
 	const requestOptions: IHttpRequestOptions = {
 		method,
 		url,
 		headers: headers as Record<string, string>,
 		json: true,
 	};
+
 	if (Object.keys(qs).length) {
 		requestOptions.qs = qs as Record<string, string>;
 	}
+
 	if (method !== 'GET') {
 		if (body && Object.keys(body).length) {
 			if (!requestOptions.headers) requestOptions.headers = {};
@@ -240,13 +250,16 @@ export async function executeApi(
 			requestOptions.body = body;
 		}
 	}
+
 	if (fullResponse) {
 		requestOptions.returnFullResponse = true;
 	}
+
 	const response = await this.helpers.httpRequestWithAuthentication.call(
 		this,
 		'zapiApi',
 		requestOptions,
 	);
+
 	return response as IDataObject;
 }

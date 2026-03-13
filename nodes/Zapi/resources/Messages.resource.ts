@@ -6,105 +6,6 @@ import type {
 } from 'n8n-workflow';
 import { NodeOperationError } from 'n8n-workflow';
 
-const whether = (value: unknown): value is boolean => typeof value === 'boolean';
-
-const stripAllWhitespace = (value: string) => value.trim().replace(/\s+/g, '');
-const looksLikeUrl = (value: string) => /^https?:\/\//i.test(value);
-const looksLikeDataUri = (value: string) => /^data:[^;]+;base64,/i.test(value);
-
-function inferMimeFromBase64(base64: string): string | null {
-	const b = base64.slice(0, 32);
-
-	if (b.startsWith('iVBORw0KGgo')) return 'image/png';
-	if (b.startsWith('/9j/')) return 'image/jpeg';
-	if (b.startsWith('R0lGOD')) return 'image/gif';
-	if (b.startsWith('UklGR')) return 'image/webp';
-
-	if (b.startsWith('JVBERi0')) return 'application/pdf';
-
-	if (b.startsWith('SUQz') || b.startsWith('//uQ')) return 'audio/mpeg';
-
-	if (b.startsWith('AAAA') || b.includes('ZnR5cA')) return 'video/mp4';
-
-	return null;
-}
-
-function normalizeUrlOrBase64(input: string, fallbackMime: string): string {
-	const cleaned = stripAllWhitespace(input);
-
-	if (looksLikeUrl(cleaned) || looksLikeDataUri(cleaned)) return cleaned;
-
-	const inferred = inferMimeFromBase64(cleaned);
-	const mime = inferred ?? fallbackMime;
-
-	return `data:${mime};base64,${cleaned}`;
-}
-
-const mimeFromExtension: Record<string, string> = {
-	pdf: 'application/pdf',
-	doc: 'application/msword',
-	docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-	xls: 'application/vnd.ms-excel',
-	xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-	ppt: 'application/vnd.ms-powerpoint',
-	pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-	txt: 'text/plain',
-	csv: 'text/csv',
-	png: 'image/png',
-	jpg: 'image/jpeg',
-	jpeg: 'image/jpeg',
-	gif: 'image/gif',
-	webp: 'image/webp',
-	mp3: 'audio/mpeg',
-	mpeg: 'audio/mpeg',
-	mp4: 'video/mp4',
-};
-
-const extensionFromMime: Record<string, string> = {
-	'application/pdf': 'pdf',
-	'application/msword': 'doc',
-	'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
-	'application/vnd.ms-excel': 'xls',
-	'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'xlsx',
-	'application/vnd.ms-powerpoint': 'ppt',
-	'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'pptx',
-	'text/plain': 'txt',
-	'text/csv': 'csv',
-	'image/png': 'png',
-	'image/jpeg': 'jpg',
-	'image/jpg': 'jpg',
-	'image/gif': 'gif',
-	'image/webp': 'webp',
-	'audio/mpeg': 'mp3',
-	'video/mp4': 'mp4',
-};
-
-function inferExtensionFromInput(input: string): string {
-	const cleaned = stripAllWhitespace(input);
-
-	if (cleaned.startsWith('data:')) {
-		const mimeMatch = cleaned.match(/^data:([^;]+);base64,/i);
-		if (mimeMatch) {
-			const mime = mimeMatch[1].toLowerCase();
-			return extensionFromMime[mime] ?? '';
-		}
-	}
-
-	if (looksLikeUrl(cleaned)) {
-		const cleanUrl = cleaned.split('?')[0].split('#')[0];
-		const lastSegment = cleanUrl.split('/').pop() || '';
-		if (lastSegment.includes('.')) {
-			return lastSegment.split('.').pop()!.toLowerCase();
-		}
-		return '';
-	}
-
-	const inferredMime = inferMimeFromBase64(cleaned);
-	if (inferredMime) return extensionFromMime[inferredMime] ?? '';
-
-	return '';
-}
-
 export const messagesProperties: INodeProperties[] = [
 	{
 		displayName: 'Phone Number',
@@ -129,7 +30,7 @@ export const messagesProperties: INodeProperties[] = [
 					'sendDocument',
 					'sendLink',
 					'sendLocation',
-					'sendImage',
+					'sendImage',	
 					'sendOptionList',
 					'sendVideo',
 					'sendSticker',
@@ -151,19 +52,18 @@ export const messagesProperties: INodeProperties[] = [
 		displayOptions: {
 			show: {
 				resource: ['messages'],
-				operation: ['sendText', 'sendLink', 'replyMessage', 'sendButtonList', 'sendOptionList'],
+				operation: ['sendText', 'sendLink', 'replyMessage', 'sendButtonList','sendOptionList'],
 			},
 		},
 	},
 	{
-		displayName: 'Link Image (URL or Base64) (linkImage)',
+		displayName: 'Link Image (linkImage)',
 		name: 'linkImage',
 		type: 'string',
 		default: '',
 		required: true,
-		placeholder: 'https://.../image.jpg  OR  data:image/png;base64,...  OR  <base64>',
-		description:
-			'Image URL or Base64 that will be displayed in the shared link. If you provide Base64 without the data URI prefix, the node will add it automatically.',
+		placeholder: 'https://www.example.com/image.jpg',
+		description: 'Image URL that will be displayed in the shared link',
 		displayOptions: {
 			show: {
 				resource: ['messages'],
@@ -172,44 +72,16 @@ export const messagesProperties: INodeProperties[] = [
 		},
 	},
 	{
-		displayName: 'Image (URL or Base64) (imageUrl)',
+		displayName: 'Image URL (imageUrl)',
 		name: 'imageUrl',
 		type: 'string',
 		default: '',
 		required: true,
-		placeholder: 'https://.../image.png  OR  data:image/png;base64,...  OR  <base64>',
-		description:
-			'Image URL or Base64. If you provide Base64 without the data URI prefix, the node will add it automatically.',
+		placeholder: 'https://www.example.com/image.jpg',
 		displayOptions: {
 			show: {
 				resource: ['messages'],
 				operation: ['sendImage'],
-			},
-		},
-	},
-	{
-		displayName: 'View Once? (viewOnce)',
-		name: 'viewOnce',
-		type: 'boolean',
-		default: false,
-		description: 'Whether to send the video as a view once message',
-		displayOptions: {
-			show: {
-				resource: ['messages'],
-				operation: ['sendVideo'],
-			},
-		},
-	},
-	{
-		displayName: 'Async Processing? (Async)',
-		name: 'async',
-		type: 'boolean',
-		default: false,
-		description: 'Whether to process the request asynchronously (return immediately and process the file in the background)',
-		displayOptions: {
-			show: {
-				resource: ['messages'],
-				operation: ['sendVideo'],
 			},
 		},
 	},
@@ -311,7 +183,7 @@ export const messagesProperties: INodeProperties[] = [
 		displayOptions: {
 			show: {
 				resource: ['messages'],
-				operation: ['sendDocument', 'sendVideo'],
+				operation: ['sendDocument','sendVideo'],
 			},
 		},
 	},
@@ -320,13 +192,14 @@ export const messagesProperties: INodeProperties[] = [
 		name: 'messageId',
 		type: 'string',
 		default: '',
+		required: true,
 		placeholder: 'D241XXXX732339502B68',
 		description:
 			'WhatsApp message ID. For messages you sent, this is the code returned in the send response; for received messages, you get this ID via webhook.',
 		displayOptions: {
 			show: {
 				resource: ['messages'],
-				operation: ['deleteMessage', 'readMessage', 'replyMessage', 'sendVideo'],
+				operation: ['deleteMessage', 'readMessage', 'replyMessage'],
 			},
 		},
 	},
@@ -349,8 +222,7 @@ export const messagesProperties: INodeProperties[] = [
 		name: 'privateAnswer',
 		type: 'boolean',
 		default: false,
-		description:
-			'Whether to reply privately. If true, for group messages the reply will be sent privately to the original sender instead of to the group.',
+		description: 'Whether to send group replies privately to the original sender instead of to the group',
 		displayOptions: {
 			show: {
 				resource: ['messages'],
@@ -364,7 +236,8 @@ export const messagesProperties: INodeProperties[] = [
 		type: 'string',
 		default: '',
 		required: true,
-		description: 'PIX key that will be sent in the button (CPF, CNPJ, phone, email, or random key)',
+		description:
+			'PIX key that will be sent in the button (CPF, CNPJ, phone, email, or random key)',
 		displayOptions: {
 			show: {
 				resource: ['messages'],
@@ -377,15 +250,31 @@ export const messagesProperties: INodeProperties[] = [
 		name: 'pixType',
 		type: 'options',
 		options: [
-			{ name: 'CNPJ', value: 'CNPJ' },
-			{ name: 'CPF', value: 'CPF' },
-			{ name: 'E-Mail', value: 'EMAIL' },
-			{ name: 'Phone', value: 'PHONE' },
-			{ name: 'Random Key (EVP)', value: 'EVP' },
+			{
+				name: 'CNPJ',
+				value: 'CNPJ',
+			},
+			{
+				name: 'CPF',
+				value: 'CPF',
+			},
+			{
+				name: 'E-Mail',
+				value: 'EMAIL',
+			},
+			{
+				name: 'Phone',
+				value: 'PHONE',
+			},
+			{
+				name: 'Random Key (EVP)',
+				value: 'EVP',
+			},
 		],
 		default: 'EVP',
 		required: true,
-		description: 'PIX key type (CPF, CNPJ, PHONE, EMAIL, or EVP), exactly as required by the API',
+		description:
+			'PIX key type (CPF, CNPJ, PHONE, EMAIL, or EVP), exactly as required by the API',
 		displayOptions: {
 			show: {
 				resource: ['messages'],
@@ -398,7 +287,8 @@ export const messagesProperties: INodeProperties[] = [
 		name: 'merchantName',
 		type: 'string',
 		default: '',
-		description: "Title that will be shown on the button. If empty, the default shown is 'Pix'.",
+		description:
+			"Title that will be shown on the button. If empty, the default shown is 'Pix'.",
 		displayOptions: {
 			show: {
 				resource: ['messages'],
@@ -433,12 +323,14 @@ export const messagesProperties: INodeProperties[] = [
 						name: 'id',
 						type: 'string',
 						default: '',
-						description: 'Button identifier, useful to track which option was chosen',
+						description:
+							'Button identifier, useful to track which option was chosen',
 					},
 				],
 			},
 		],
-		description: 'List of buttons that will be displayed to the user as reply options',
+		description:
+			'List of buttons that will be displayed to the user as reply options',
 		displayOptions: {
 			show: {
 				resource: ['messages'],
@@ -481,7 +373,8 @@ export const messagesProperties: INodeProperties[] = [
 		name: 'contactBusinessDescription',
 		type: 'string',
 		default: '',
-		description: 'Short description about the contact (not shown on WhatsApp Web)',
+		description:
+			'Short description about the contact (not shown on WhatsApp Web)',
 		displayOptions: {
 			show: {
 				resource: ['messages'],
@@ -490,14 +383,12 @@ export const messagesProperties: INodeProperties[] = [
 		},
 	},
 	{
-		displayName: 'Document (URL or Base64) (Document)',
+		displayName: 'Document',
 		name: 'document',
 		type: 'string',
 		default: '',
 		required: true,
-		placeholder: 'https://.../file.pdf  OR  data:application/pdf;base64,...  OR  <base64>',
-		description:
-			'Document URL or Base64. If you provide Base64 without the data URI prefix, the node will add it automatically (based on extension or file signature when possible).',
+		description: 'Document to be sent (PDF, DOCX, etc.)',
 		displayOptions: {
 			show: {
 				resource: ['messages'],
@@ -538,14 +429,16 @@ export const messagesProperties: INodeProperties[] = [
 						name: 'title',
 						type: 'string',
 						default: '',
-						description: 'Title of the location (optional)',
+						description:
+							'Title of the location (optional)',
 					},
 					{
 						displayName: 'Address (Optional)',
 						name: 'address',
 						type: 'string',
 						default: '',
-						description: 'Address of the location (optional)',
+						description:
+							'Address of the location (optional)',
 					},
 				],
 			},
@@ -637,12 +530,12 @@ export const messagesProperties: INodeProperties[] = [
 		},
 	},
 	{
-		displayName: 'Video (URL or Base64) (Video)',
+		displayName: 'Video (URL or Base64)',
 		name: 'video',
 		type: 'string',
 		default: '',
 		required: true,
-		placeholder: 'https://...mp4  OR  data:video/mp4;base64,...  OR  <base64>',
+		placeholder: 'https://...mp4  OR  data:video/mp4;base64,...',
 		description: 'Video link or Base64 (Z-API: attribute "video")',
 		displayOptions: {
 			show: {
@@ -652,12 +545,12 @@ export const messagesProperties: INodeProperties[] = [
 		},
 	},
 	{
-		displayName: 'Sticker (URL or Base64) (Sticker)',
+		displayName: 'Sticker (URL or Base64)',
 		name: 'sticker',
 		type: 'string',
 		default: '',
 		required: true,
-		placeholder: 'https://...webp  OR  data:image/webp;base64,...  OR  <base64>',
+		placeholder: 'https://...webp  OR  data:image/png;base64,...',
 		description: 'Sticker link or Base64 (Z-API: attribute "sticker")',
 		displayOptions: {
 			show: {
@@ -667,12 +560,12 @@ export const messagesProperties: INodeProperties[] = [
 		},
 	},
 	{
-		displayName: 'Audio (URL or Base64) (Audio)',
+		displayName: 'Audio (URL or Base64)',
 		name: 'audio',
 		type: 'string',
 		default: '',
 		required: true,
-		placeholder: 'https://...mp3  OR  data:audio/mpeg;base64,...  OR  <base64>',
+		placeholder: 'https://...mp3  OR  data:audio/mp3;base64,...',
 		description: 'Audio link or Base64 (Z-API: attribute "audio")',
 		displayOptions: {
 			show: {
@@ -685,7 +578,7 @@ export const messagesProperties: INodeProperties[] = [
 
 export async function executeMessages(
 	this: IExecuteFunctions,
-	_items: INodeExecutionData[],
+	items: INodeExecutionData[],
 	itemIndex: number,
 	operation: string,
 	baseUrl: string,
@@ -696,14 +589,23 @@ export async function executeMessages(
 		const delayMessage = this.getNodeParameter('delayMessage', itemIndex, 0) as number;
 
 		if (!phone) {
-			throw new NodeOperationError(this.getNode(), 'Phone number is required.', { itemIndex });
+			throw new NodeOperationError(
+				this.getNode(),
+				'Phone number is required.',
+				{ itemIndex },
+			);
 		}
 
 		if (!message) {
-			throw new NodeOperationError(this.getNode(), 'Message cannot be empty.', { itemIndex });
+			throw new NodeOperationError(this.getNode(), 'Message cannot be empty.', {
+				itemIndex,
+			});
 		}
 
-		const body: IDataObject = { phone, message };
+		const body: IDataObject = {
+			phone,
+			message,
+		};
 
 		if (delayMessage && delayMessage > 0) {
 			body.delayMessage = delayMessage;
@@ -712,7 +614,9 @@ export async function executeMessages(
 		const response = await this.helpers.httpRequestWithAuthentication.call(this, 'zapiApi', {
 			method: 'POST',
 			url: `${baseUrl}/send-text`,
-			headers: { 'Content-Type': 'application/json' },
+			headers: {
+				'Content-Type': 'application/json',
+			},
 			body,
 			json: true,
 		});
@@ -726,26 +630,42 @@ export async function executeMessages(
 		const owner = this.getNodeParameter('owner', itemIndex) as boolean;
 
 		if (!phone) {
-			throw new NodeOperationError(this.getNode(), 'Phone number is required.', { itemIndex });
+			throw new NodeOperationError(
+				this.getNode(),
+				'Phone number is required.',
+				{ itemIndex },
+			);
 		}
 
 		if (!messageId) {
-			throw new NodeOperationError(this.getNode(), 'Message ID (messageId) is required.', { itemIndex });
+			throw new NodeOperationError(
+				this.getNode(),
+				'Message ID (messageId) is required.',
+				{ itemIndex },
+			);
 		}
 
-		const qs: IDataObject = { phone, messageId };
-		if (whether(owner)) qs.owner = owner;
+		const qs: IDataObject = {
+			phone,
+			messageId,
+			owner,
+		};
 
 		const response = await this.helpers.httpRequestWithAuthentication.call(this, 'zapiApi', {
 			method: 'DELETE',
 			url: `${baseUrl}/messages`,
 			qs,
-			headers: { 'Content-Type': 'application/json' },
+			headers: {
+				'Content-Type': 'application/json',
+			},
 			json: true,
 		});
 
 		if (!response || (typeof response === 'object' && Object.keys(response as object).length === 0)) {
-			return { success: true, message: 'Message deleted successfully (HTTP 204 / no content).' };
+			return {
+				success: true,
+				message: 'Message deleted successfully (HTTP 204 / no content).',
+			};
 		}
 
 		return response as IDataObject;
@@ -756,25 +676,41 @@ export async function executeMessages(
 		const messageId = this.getNodeParameter('messageId', itemIndex) as string;
 
 		if (!phone) {
-			throw new NodeOperationError(this.getNode(), 'Phone number is required.', { itemIndex });
+			throw new NodeOperationError(
+				this.getNode(),
+				'Phone number is required.',
+				{ itemIndex },
+			);
 		}
 
 		if (!messageId) {
-			throw new NodeOperationError(this.getNode(), 'Message ID (messageId) is required.', { itemIndex });
+			throw new NodeOperationError(
+				this.getNode(),
+				'Message ID (messageId) is required.',
+				{ itemIndex },
+			);
 		}
 
-		const body: IDataObject = { phone, messageId };
+		const body: IDataObject = {
+			phone,
+			messageId,
+		};
 
 		const response = await this.helpers.httpRequestWithAuthentication.call(this, 'zapiApi', {
 			method: 'POST',
 			url: `${baseUrl}/read-message`,
-			headers: { 'Content-Type': 'application/json' },
+			headers: {
+				'Content-Type': 'application/json',
+			},
 			body,
 			json: true,
 		});
 
 		if (!response || (typeof response === 'object' && Object.keys(response as object).length === 0)) {
-			return { success: true, message: 'Message marked as read successfully (HTTP 204 / no content).' };
+			return {
+				success: true,
+				message: 'Message marked as read successfully (HTTP 204 / no content).',
+			};
 		}
 
 		return response as IDataObject;
@@ -788,33 +724,46 @@ export async function executeMessages(
 		const privateAnswer = this.getNodeParameter('privateAnswer', itemIndex, false) as boolean;
 
 		if (!phone) {
-			throw new NodeOperationError(this.getNode(), 'Phone number is required.', { itemIndex });
+			throw new NodeOperationError(
+				this.getNode(),
+				'Phone number is required.',
+				{ itemIndex },
+			);
 		}
 
 		if (!message) {
-			throw new NodeOperationError(this.getNode(), 'Message cannot be empty.', { itemIndex });
-		}
-
-		if (!messageId) {
-			throw new NodeOperationError(this.getNode(), 'Original message ID (messageId) is required.', {
+			throw new NodeOperationError(this.getNode(), 'Message cannot be empty.', {
 				itemIndex,
 			});
 		}
+		if (!messageId) {
+			throw new NodeOperationError(
+				this.getNode(),
+				'Original message ID (messageId) is required.',
+				{ itemIndex },
+			);
+		}
 
-		const body: IDataObject = { phone, message, messageId };
+		const body: IDataObject = {
+			phone,
+			message,
+			messageId,
+		};
 
 		if (delayMessage && delayMessage > 0) {
 			body.delayMessage = delayMessage;
 		}
 
-		if (whether(privateAnswer)) {
+		if (privateAnswer) {
 			body.privateAnswer = privateAnswer;
 		}
 
 		const response = await this.helpers.httpRequestWithAuthentication.call(this, 'zapiApi', {
 			method: 'POST',
 			url: `${baseUrl}/send-text`,
-			headers: { 'Content-Type': 'application/json' },
+			headers: {
+				'Content-Type': 'application/json',
+			},
 			body,
 			json: true,
 		});
@@ -829,18 +778,34 @@ export async function executeMessages(
 		const merchantName = this.getNodeParameter('merchantName', itemIndex, '') as string;
 
 		if (!phone) {
-			throw new NodeOperationError(this.getNode(), 'Phone number is required.', { itemIndex });
+			throw new NodeOperationError(
+				this.getNode(),
+				'Phone number is required.',
+				{ itemIndex },
+			);
 		}
 
 		if (!pixKey) {
-			throw new NodeOperationError(this.getNode(), 'PIX key (pixKey) is required.', { itemIndex });
+			throw new NodeOperationError(
+				this.getNode(),
+				'PIX key (pixKey) is required.',
+				{ itemIndex },
+			);
 		}
 
 		if (!pixType) {
-			throw new NodeOperationError(this.getNode(), 'PIX key type (type) is required.', { itemIndex });
+			throw new NodeOperationError(
+				this.getNode(),
+				'PIX key type (type) is required.',
+				{ itemIndex },
+			);
 		}
 
-		const body: IDataObject = { phone, pixKey, type: pixType };
+		const body: IDataObject = {
+			phone,
+			pixKey,
+			type: pixType,
+		};
 
 		if (merchantName && merchantName.trim().length > 0) {
 			body.merchantName = merchantName;
@@ -849,7 +814,9 @@ export async function executeMessages(
 		const response = await this.helpers.httpRequestWithAuthentication.call(this, 'zapiApi', {
 			method: 'POST',
 			url: `${baseUrl}/send-button-pix`,
-			headers: { 'Content-Type': 'application/json' },
+			headers: {
+				'Content-Type': 'application/json',
+			},
 			body,
 			json: true,
 		});
@@ -863,20 +830,28 @@ export async function executeMessages(
 		const delayMessage = this.getNodeParameter('delayMessage', itemIndex, 0) as number;
 
 		if (!phone) {
-			throw new NodeOperationError(this.getNode(), 'Phone number is required.', { itemIndex });
+			throw new NodeOperationError(
+				this.getNode(),
+				'Phone number is required.',
+				{ itemIndex },
+			);
 		}
 
 		if (!message) {
-			throw new NodeOperationError(this.getNode(), 'Message cannot be empty.', { itemIndex });
+			throw new NodeOperationError(this.getNode(), 'Message cannot be empty.', {
+				itemIndex,
+			});
 		}
 
 		const buttonsCollection = this.getNodeParameter('buttons', itemIndex, {}) as IDataObject;
 		const rawButtons = (buttonsCollection.button as IDataObject[]) || [];
 
 		if (!rawButtons.length) {
-			throw new NodeOperationError(this.getNode(), 'At least one button must be provided in the list (buttons).', {
-				itemIndex,
-			});
+			throw new NodeOperationError(
+				this.getNode(),
+				'At least one button must be provided in the list (buttons).',
+				{ itemIndex },
+			);
 		}
 
 		const buttons = rawButtons.map((btn) => {
@@ -884,9 +859,11 @@ export async function executeMessages(
 			const id = (btn.id as string) || '';
 
 			if (!label) {
-				throw new NodeOperationError(this.getNode(), 'Each button must have a label (button text).', {
-					itemIndex,
-				});
+				throw new NodeOperationError(
+					this.getNode(),
+					'Each button must have a label (button text).',
+					{ itemIndex },
+				);
 			}
 
 			const button: IDataObject = { label };
@@ -901,7 +878,9 @@ export async function executeMessages(
 		const body: IDataObject = {
 			phone,
 			message,
-			buttonList: { buttons },
+			buttonList: {
+				buttons,
+			},
 		};
 
 		if (delayMessage && delayMessage > 0) {
@@ -911,7 +890,9 @@ export async function executeMessages(
 		const response = await this.helpers.httpRequestWithAuthentication.call(this, 'zapiApi', {
 			method: 'POST',
 			url: `${baseUrl}/send-button-list`,
-			headers: { 'Content-Type': 'application/json' },
+			headers: {
+				'Content-Type': 'application/json',
+			},
 			body,
 			json: true,
 		});
@@ -931,18 +912,34 @@ export async function executeMessages(
 		) as string;
 
 		if (!phone) {
-			throw new NodeOperationError(this.getNode(), 'Recipient phone number is required.', { itemIndex });
+			throw new NodeOperationError(
+				this.getNode(),
+				'Recipient phone number is required.',
+				{ itemIndex },
+			);
 		}
 
 		if (!contactName) {
-			throw new NodeOperationError(this.getNode(), 'Contact name (contactName) is required.', { itemIndex });
+			throw new NodeOperationError(
+				this.getNode(),
+				'Contact name (contactName) is required.',
+				{ itemIndex },
+			);
 		}
 
 		if (!contactPhone) {
-			throw new NodeOperationError(this.getNode(), 'Contact phone (contactPhone) is required.', { itemIndex });
+			throw new NodeOperationError(
+				this.getNode(),
+				'Contact phone (contactPhone) is required.',
+				{ itemIndex },
+			);
 		}
 
-		const body: IDataObject = { phone, contactName, contactPhone };
+		const body: IDataObject = {
+			phone,
+			contactName,
+			contactPhone,
+		};
 
 		if (contactBusinessDescription && contactBusinessDescription.trim().length > 0) {
 			body.contactBusinessDescription = contactBusinessDescription;
@@ -955,7 +952,9 @@ export async function executeMessages(
 		const response = await this.helpers.httpRequestWithAuthentication.call(this, 'zapiApi', {
 			method: 'POST',
 			url: `${baseUrl}/send-contact`,
-			headers: { 'Content-Type': 'application/json' },
+			headers: {
+				'Content-Type': 'application/json',
+			},
 			body,
 			json: true,
 		});
@@ -966,27 +965,34 @@ export async function executeMessages(
 	if (operation === 'sendLink') {
 		const phone = this.getNodeParameter('phone', itemIndex) as string;
 		const message = this.getNodeParameter('message', itemIndex) as string;
-		const linkImageParam = this.getNodeParameter('linkImage', itemIndex) as string;
+		const linkImage = this.getNodeParameter('linkImage', itemIndex) as string;
 		const linkUrl = this.getNodeParameter('linkUrl', itemIndex) as string;
 		const linkTitle = this.getNodeParameter('linkTitle', itemIndex) as string;
 		const linkDescription = this.getNodeParameter('linkDescription', itemIndex) as string;
 		const delayMessage = this.getNodeParameter('delayMessage', itemIndex, 0) as number;
 
 		if (!phone) {
-			throw new NodeOperationError(this.getNode(), 'Phone number is required.', { itemIndex });
+			throw new NodeOperationError(
+				this.getNode(),
+				'Phone number is required.',
+				{ itemIndex },
+			);
 		}
 
 		if (!message) {
-			throw new NodeOperationError(this.getNode(), 'Message cannot be empty.', { itemIndex });
+			throw new NodeOperationError(this.getNode(), 'Message cannot be empty.', {
+				itemIndex,
+			});
 		}
 
-		if (!linkImageParam) {
-			throw new NodeOperationError(this.getNode(), 'Link image (linkImage) is required.', { itemIndex });
-		}
-
-		const linkImage = normalizeUrlOrBase64(linkImageParam, 'image/png');
-
-		const body: IDataObject = { phone, message, linkImage, linkUrl, linkTitle, linkDescription };
+		const body: IDataObject = {
+			phone,
+			message,
+			linkImage,
+			linkUrl,
+			linkTitle,
+			linkDescription,
+		};
 
 		if (delayMessage && delayMessage > 0) {
 			body.delayMessage = delayMessage;
@@ -995,7 +1001,9 @@ export async function executeMessages(
 		const response = await this.helpers.httpRequestWithAuthentication.call(this, 'zapiApi', {
 			method: 'POST',
 			url: `${baseUrl}/send-link`,
-			headers: { 'Content-Type': 'application/json' },
+			headers: {
+				'Content-Type': 'application/json',
+			},
 			body,
 			json: true,
 		});
@@ -1005,17 +1013,25 @@ export async function executeMessages(
 
 	if (operation === 'sendDocument') {
 		const phone = this.getNodeParameter('phone', itemIndex) as string;
-		const documentParam = this.getNodeParameter('document', itemIndex) as string;
+		const document = this.getNodeParameter('document', itemIndex) as string;
 		const fileName = this.getNodeParameter('fileName', itemIndex, '') as string;
 		const caption = this.getNodeParameter('caption', itemIndex, '') as string;
 		const delayMessage = this.getNodeParameter('delayMessage', itemIndex, 0) as number;
 
 		if (!phone) {
-			throw new NodeOperationError(this.getNode(), 'Phone number is required.', { itemIndex });
+			throw new NodeOperationError(
+				this.getNode(),
+				'Phone number is required.',
+				{ itemIndex },
+			);
 		}
 
-		if (!documentParam) {
-			throw new NodeOperationError(this.getNode(), 'The document to be sent is required.', { itemIndex });
+		if (!document) {
+			throw new NodeOperationError(
+				this.getNode(),
+				'The document to be sent is required.',
+				{ itemIndex },
+			);
 		}
 
 		let extension = '';
@@ -1024,25 +1040,53 @@ export async function executeMessages(
 			extension = fileName.split('.').pop()!.toLowerCase();
 		}
 
-		if (!extension) {
-			extension = inferExtensionFromInput(documentParam);
+		if (!extension && document.startsWith('http')) {
+			const cleanUrl = document.split('?')[0].split('#')[0];
+			const lastSegment = cleanUrl.split('/').pop() || '';
+
+			if (lastSegment.includes('.')) {
+				extension = lastSegment.split('.').pop()!.toLowerCase();
+			}
+		}
+
+		if (!extension && document.startsWith('data:')) {
+			const mimeMatch = document.match(/^data:([^;]+);/);
+			if (mimeMatch) {
+				const mime = mimeMatch[1]; // e.g.: application/pdf
+				const mimeToExt: Record<string, string> = {
+					'application/pdf': 'pdf',
+					'application/msword': 'doc',
+					'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
+					'image/png': 'png',
+					'image/jpeg': 'jpg',
+					'image/jpg': 'jpg',
+				};
+				if (mimeToExt[mime]) {
+					extension = mimeToExt[mime];
+				}
+			}
 		}
 
 		if (!extension) {
 			throw new NodeOperationError(
 				this.getNode(),
-				'Could not determine the file extension. Provide a "fileName" with an extension (e.g., "invoice.pdf") or use a URL that ends with the extension, or a data URI (data:<mime>;base64,...) or a Base64 whose signature can be inferred (e.g., PDF/PNG/JPG/GIF/WEBP).',
+				'Could not determine the file extension. Provide a "fileName" with an extension (e.g., "invoice.pdf") or use a URL that ends with the extension.',
 				{ itemIndex },
 			);
 		}
 
-		const fallbackMime = mimeFromExtension[extension] ?? 'application/octet-stream';
-		const document = normalizeUrlOrBase64(documentParam, fallbackMime);
+		const body: IDataObject = {
+			phone,
+			document,
+		};
 
-		const body: IDataObject = { phone, document };
+		if (fileName && fileName.trim().length > 0) {
+			body.fileName = fileName;
+		}
 
-		if (fileName && fileName.trim().length > 0) body.fileName = fileName;
-		if (caption && caption.trim().length > 0) body.caption = caption;
+		if (caption && caption.trim().length > 0) {
+			body.caption = caption;
+		}
 
 		if (delayMessage && delayMessage > 0) {
 			body.delayMessage = delayMessage;
@@ -1051,7 +1095,9 @@ export async function executeMessages(
 		const response = await this.helpers.httpRequestWithAuthentication.call(this, 'zapiApi', {
 			method: 'POST',
 			url: `${baseUrl}/send-document/${extension}`,
-			headers: { 'Content-Type': 'application/json' },
+			headers: {
+				'Content-Type': 'application/json',
+			},
 			body,
 			json: true,
 		});
@@ -1064,7 +1110,11 @@ export async function executeMessages(
 		const delayMessage = this.getNodeParameter('delayMessage', itemIndex, 0) as number;
 
 		if (!phone) {
-			throw new NodeOperationError(this.getNode(), 'Phone number is required.', { itemIndex });
+			throw new NodeOperationError(
+				this.getNode(),
+				'Phone number is required.',
+				{ itemIndex },
+			);
 		}
 
 		const locationCollection = this.getNodeParameter('location', itemIndex, {}) as IDataObject;
@@ -1094,251 +1144,309 @@ export async function executeMessages(
 			longitude: String(longitude),
 		};
 
-		if (title && title.trim().length > 0) body.title = title;
-		if (address && address.trim().length > 0) body.address = address;
+		if (title && title.trim().length > 0) {
+			body.title = title;
+		}
+
+		if (address && address.trim().length > 0) {
+			body.address = address;
+		}
 
 		if (delayMessage && delayMessage > 0) {
 			body.delayMessage = delayMessage;
 		}
 
-		const response = await this.helpers.httpRequestWithAuthentication.call(this, 'zapiApi', {
-			method: 'POST',
-			url: `${baseUrl}/send-location`,
-			headers: { 'Content-Type': 'application/json' },
-			body,
-			json: true,
-		});
+		const response = await this.helpers.httpRequestWithAuthentication.call(
+			this,
+			'zapiApi',
+			{
+				method: 'POST',
+				url: `${baseUrl}/send-location`,
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body,
+				json: true,
+			},
+		);
 
 		return response as IDataObject;
 	}
 
 	if (operation === 'sendImage') {
 		const phone = this.getNodeParameter('phone', itemIndex) as string;
-		const imageParam = this.getNodeParameter('imageUrl', itemIndex) as string;
+		const imageUrl = this.getNodeParameter('imageUrl', itemIndex) as string;
 		const delayMessage = this.getNodeParameter('delayMessage', itemIndex, 0) as number;
-
 		if (!phone) {
-			throw new NodeOperationError(this.getNode(), 'Phone number is required.', { itemIndex });
+			throw new NodeOperationError(
+				this.getNode(),
+				'Phone number is required.',
+				{ itemIndex },
+			);
 		}
-
-		if (!imageParam) {
-			throw new NodeOperationError(this.getNode(), 'Image (URL or Base64) is required.', { itemIndex });
+		if (!imageUrl) {
+			throw new NodeOperationError(
+				this.getNode(),
+				'Image URL is required.',
+				{ itemIndex },
+			);
 		}
-
-		const image = normalizeUrlOrBase64(imageParam, 'image/png');
-
-		const body: IDataObject = { phone, image };
-
+		const body: IDataObject = {
+			phone,
+			image: imageUrl,
+		};
 		if (delayMessage && delayMessage > 0) {
 			body.delayMessage = delayMessage;
 		}
-
 		const response = await this.helpers.httpRequestWithAuthentication.call(this, 'zapiApi', {
 			method: 'POST',
 			url: `${baseUrl}/send-image`,
-			headers: { 'Content-Type': 'application/json' },
+			headers: {
+				'Content-Type': 'application/json',
+			},
 			body,
 			json: true,
 		});
-
 		return response as IDataObject;
 	}
 
 	if (operation === 'sendOptionList') {
-		const phone = this.getNodeParameter('phone', itemIndex) as string;
-		const message = this.getNodeParameter('message', itemIndex) as string;
-		const delayMessage = this.getNodeParameter('delayMessage', itemIndex, 0) as number;
+	const phone = this.getNodeParameter('phone', itemIndex) as string;
+	const message = this.getNodeParameter('message', itemIndex) as string;
+	const delayMessage = this.getNodeParameter('delayMessage', itemIndex, 0) as number;
 
-		const optionListTitle = this.getNodeParameter('optionListTitle', itemIndex) as string;
-		const optionListButtonLabel = this.getNodeParameter('optionListButtonLabel', itemIndex) as string;
+	const optionListTitle = this.getNodeParameter('optionListTitle', itemIndex) as string;
+	const optionListButtonLabel = this.getNodeParameter('optionListButtonLabel', itemIndex) as string;
 
-		if (!phone) {
-			throw new NodeOperationError(this.getNode(), 'Phone number is required.', { itemIndex });
+	if (!phone) {
+		throw new NodeOperationError(this.getNode(), 'Phone number is required.', { itemIndex });
+	}
+
+	if (!message) {
+		throw new NodeOperationError(this.getNode(), 'Message cannot be empty.', { itemIndex });
+	}
+
+	if (!optionListTitle) {
+		throw new NodeOperationError(this.getNode(), 'Option list title (optionListTitle) is required.', {
+			itemIndex,
+		});
+	}
+
+	if (!optionListButtonLabel) {
+		throw new NodeOperationError(
+			this.getNode(),
+			'Option list button label (optionListButtonLabel) is required.',
+			{ itemIndex },
+		);
+	}
+
+	const optionListCollection = this.getNodeParameter('optionListOptions', itemIndex, {}) as IDataObject;
+	const rawOptions = (optionListCollection.options as IDataObject[]) || [];
+
+	if (!rawOptions.length) {
+		throw new NodeOperationError(
+			this.getNode(),
+			'At least one option must be provided in the list (optionListOptions).',
+			{ itemIndex },
+		);
+	}
+
+	const options = rawOptions.map((opt) => {
+		const title = opt.title as string;
+		const description = opt.description as string;
+		const id = (opt.id as string) || '';
+
+		if (!title) {
+			throw new NodeOperationError(this.getNode(), 'Each option must have a title.', { itemIndex });
 		}
 
-		if (!message) {
-			throw new NodeOperationError(this.getNode(), 'Message cannot be empty.', { itemIndex });
-		}
-
-		if (!optionListTitle) {
-			throw new NodeOperationError(this.getNode(), 'Option list title (optionListTitle) is required.', {
+		if (!description) {
+			throw new NodeOperationError(this.getNode(), 'Each option must have a description.', {
 				itemIndex,
 			});
 		}
 
-		if (!optionListButtonLabel) {
-			throw new NodeOperationError(
-				this.getNode(),
-				'Option list button label (optionListButtonLabel) is required.',
-				{ itemIndex },
-			);
+		const option: IDataObject = { title, description };
+
+		if (id && id.trim().length > 0) {
+			option.id = id;
 		}
 
-		const optionListCollection = this.getNodeParameter('optionListOptions', itemIndex, {}) as IDataObject;
-		const rawOptions = (optionListCollection.options as IDataObject[]) || [];
-
-		if (!rawOptions.length) {
-			throw new NodeOperationError(
-				this.getNode(),
-				'At least one option must be provided in the list (optionListOptions).',
-				{ itemIndex },
-			);
-		}
-
-		const options = rawOptions.map((opt) => {
-			const title = opt.title as string;
-			const description = opt.description as string;
-			const id = (opt.id as string) || '';
-
-			if (!title) {
-				throw new NodeOperationError(this.getNode(), 'Each option must have a title.', { itemIndex });
-			}
-
-			if (!description) {
-				throw new NodeOperationError(this.getNode(), 'Each option must have a description.', { itemIndex });
-			}
-
-			const option: IDataObject = { title, description };
-
-			if (id && id.trim().length > 0) {
-				option.id = id;
-			}
-
-			return option;
-		});
-
-		const body: IDataObject = {
-			phone,
-			message,
-			optionList: {
-				title: optionListTitle,
-				buttonLabel: optionListButtonLabel,
-				options,
-			},
-		};
-
-		if (delayMessage && delayMessage > 0) {
-			body.delayMessage = delayMessage;
-		}
-
-		const response = await this.helpers.httpRequestWithAuthentication.call(this, 'zapiApi', {
-			method: 'POST',
-			url: `${baseUrl}/send-option-list`,
-			headers: { 'Content-Type': 'application/json' },
-			body,
-			json: true,
-		});
-
-		return response as IDataObject;
-	}
-
-	if (operation === 'sendVideo') {
-		const phone = this.getNodeParameter('phone', itemIndex) as string;
-		const videoParam = this.getNodeParameter('video', itemIndex) as string;
-
-		const caption = this.getNodeParameter('caption', itemIndex, '') as string;
-		const viewOnceParam = this.getNodeParameter('viewOnce', itemIndex, false) as boolean;
-		const asyncParam = this.getNodeParameter('async', itemIndex, false) as boolean;
-		const messageId = this.getNodeParameter('messageId', itemIndex, '') as string;
-		const delayMessage = this.getNodeParameter('delayMessage', itemIndex, 0) as number;
-
-		if (!phone) {
-			throw new NodeOperationError(this.getNode(), 'Phone number is required.', { itemIndex });
-		}
-
-		if (!videoParam) {
-			throw new NodeOperationError(this.getNode(), 'Video is required (URL or Base64).', { itemIndex });
-		}
-
-		const video = normalizeUrlOrBase64(videoParam, 'video/mp4');
-
-		const body: IDataObject = { phone, video };
-
-		if (caption && caption.length > 0) body.caption = caption;
-		if (whether(viewOnceParam)) body.viewOnce = viewOnceParam;
-		if (whether(asyncParam)) body.async = asyncParam;
-		if (messageId && messageId.length > 0) body.messageId = messageId;
-
-		if (delayMessage && delayMessage > 0) {
-			body.delayMessage = delayMessage;
-		}
-
-		const response = await this.helpers.httpRequestWithAuthentication.call(this, 'zapiApi', {
-			method: 'POST',
-			url: `${baseUrl}/send-video`,
-			headers: { 'Content-Type': 'application/json' },
-			body,
-			json: true,
-		});
-
-		return response as IDataObject;
-	}
-
-	if (operation === 'sendSticker') {
-		const phone = this.getNodeParameter('phone', itemIndex) as string;
-		const stickerParam = this.getNodeParameter('sticker', itemIndex) as string;
-		const delayMessage = this.getNodeParameter('delayMessage', itemIndex, 0) as number;
-
-		if (!phone) {
-			throw new NodeOperationError(this.getNode(), 'Phone number is required.', { itemIndex });
-		}
-
-		if (!stickerParam) {
-			throw new NodeOperationError(this.getNode(), 'Sticker is required (URL or Base64).', { itemIndex });
-		}
-
-		const sticker = normalizeUrlOrBase64(stickerParam, 'image/webp');
-
-		const body: IDataObject = { phone, sticker };
-
-		if (delayMessage && delayMessage > 0) {
-			body.delayMessage = delayMessage;
-		}
-
-		const response = await this.helpers.httpRequestWithAuthentication.call(this, 'zapiApi', {
-			method: 'POST',
-			url: `${baseUrl}/send-sticker`,
-			headers: { 'Content-Type': 'application/json' },
-			body,
-			json: true,
-		});
-
-		return response as IDataObject;
-	}
-
-	if (operation === 'sendAudio') {
-		const phone = this.getNodeParameter('phone', itemIndex) as string;
-		const audioParam = this.getNodeParameter('audio', itemIndex) as string;
-		const delayMessage = this.getNodeParameter('delayMessage', itemIndex, 0) as number;
-
-		if (!phone) {
-			throw new NodeOperationError(this.getNode(), 'Phone number is required.', { itemIndex });
-		}
-
-		if (!audioParam) {
-			throw new NodeOperationError(this.getNode(), 'Audio is required (URL or Base64).', { itemIndex });
-		}
-
-		const audio = normalizeUrlOrBase64(audioParam, 'audio/mpeg');
-
-		const body: IDataObject = { phone, audio };
-
-		if (delayMessage && delayMessage > 0) {
-			body.delayMessage = delayMessage;
-		}
-
-		const response = await this.helpers.httpRequestWithAuthentication.call(this, 'zapiApi', {
-			method: 'POST',
-			url: `${baseUrl}/send-audio`,
-			headers: { 'Content-Type': 'application/json' },
-			body,
-			json: true,
-		});
-
-		return response as IDataObject;
-	}
-
-	throw new NodeOperationError(this.getNode(), `Unsupported operation for "messages" resource: ${operation}`, {
-		itemIndex,
+		return option;
 	});
+
+	const body: IDataObject = {
+		phone,
+		message,
+		optionList: {
+			title: optionListTitle,
+			buttonLabel: optionListButtonLabel,
+			options,
+		},
+	};
+
+	if (delayMessage && delayMessage > 0) {
+		body.delayMessage = delayMessage;
+	}
+
+	const response = await this.helpers.httpRequestWithAuthentication.call(this, 'zapiApi', {
+		method: 'POST',
+		url: `${baseUrl}/send-option-list`,
+		headers: {
+			'Content-Type': 'application/json',
+		},
+		body,
+		json: true,
+	});
+
+	return response as IDataObject;
+}
+
+if (operation === 'sendVideo') {
+	const phone = this.getNodeParameter('phone', itemIndex) as string;
+	const videoParam = this.getNodeParameter('video', itemIndex) as string;
+
+	const caption = this.getNodeParameter('caption', itemIndex, '') as string;
+	const viewOnce = this.getNodeParameter('viewOnce', itemIndex, false) as boolean;
+	const async = this.getNodeParameter('async', itemIndex, false) as boolean;
+	const messageId = this.getNodeParameter('messageId', itemIndex, '') as string;
+	const delayMessage = this.getNodeParameter('delayMessage', itemIndex, 0) as number;
+
+	if (!phone) {
+		throw new NodeOperationError(this.getNode(), 'Phone number is required.', { itemIndex });
+	}
+
+	if (!videoParam) {
+		throw new NodeOperationError(this.getNode(), 'Video is required (URL or Base64).', { itemIndex });
+	}
+
+	let video = videoParam.trim();
+
+	video = video.replace(/\s+/g, '');
+
+	const isUrl = /^https?:\/\//i.test(video);
+	const isDataUri = /^data:video\/[a-zA-Z0-9.+-]+;base64,/i.test(video);
+
+	if (!isUrl && !isDataUri) {
+		video = `data:video/mp4;base64,${video}`;
+	}
+
+	const body: IDataObject = {
+		phone,
+		video,
+	};
+
+	if (caption && caption.length > 0) body.caption = caption;
+	if (typeof viewOnce === 'boolean') body.viewOnce = viewOnce;
+	if (typeof async === 'boolean') body.async = async;
+	if (messageId && messageId.length > 0) body.messageId = messageId;
+
+	if (delayMessage && delayMessage > 0) {
+		body.delayMessage = delayMessage;
+	}
+
+	const response = await this.helpers.httpRequestWithAuthentication.call(this, 'zapiApi', {
+		method: 'POST',
+		url: `${baseUrl}/send-video`,
+		headers: {
+			'Content-Type': 'application/json',
+		},
+		body,
+		json: true,
+	});
+
+	return response as IDataObject;
+}
+
+if (operation === 'sendSticker') {
+	const phone = this.getNodeParameter('phone', itemIndex) as string;
+	const stickerParam = this.getNodeParameter('sticker', itemIndex) as string;
+	const delayMessage = this.getNodeParameter('delayMessage', itemIndex, 0) as number;
+
+	if (!phone) {
+		throw new NodeOperationError(this.getNode(), 'Phone number is required.', { itemIndex });
+	}
+	if (!stickerParam) {
+		throw new NodeOperationError(this.getNode(), 'Sticker is required (URL or Base64).', {
+			itemIndex,
+		});
+	}
+
+	let sticker = stickerParam.trim();
+
+	sticker = sticker.replace(/\s+/g, '');
+
+	const isUrl = /^https?:\/\//i.test(sticker);
+	const isDataUri = /^data:image\/[a-zA-Z0-9.+-]+;base64,/i.test(sticker);
+
+	if (!isUrl && !isDataUri) {
+		sticker = `data:image/webp;base64,${sticker}`;
+	}
+
+	const body: IDataObject = {
+		phone,
+		sticker,
+	};
+
+	if (delayMessage && delayMessage > 0) {
+		body.delayMessage = delayMessage;
+	}
+
+	const response = await this.helpers.httpRequestWithAuthentication.call(this, 'zapiApi', {
+		method: 'POST',
+		url: `${baseUrl}/send-sticker`,
+		headers: {
+			'Content-Type': 'application/json',
+		},
+		body,
+		json: true,
+	});
+
+	return response as IDataObject;
+}
+
+if (operation === 'sendAudio') {
+	const phone = this.getNodeParameter('phone', itemIndex) as string;
+	const audioParam = this.getNodeParameter('audio', itemIndex) as string;
+	const delayMessage = this.getNodeParameter('delayMessage', itemIndex, 0) as number;
+	if (!phone) {
+		throw new NodeOperationError(this.getNode(), 'Phone number is required.', { itemIndex });
+	}
+	if (!audioParam) {
+		throw new NodeOperationError(this.getNode(), 'Audio is required (URL or Base64).', {
+			itemIndex,
+		});
+	}
+	let audio = audioParam.trim();
+
+	audio = audio.replace(/\s+/g, '');
+	const isUrl = /^https?:\/\//i.test(audio);
+	const isDataUri = /^data:audio\/[a-zA-Z0-9.+-]+;base64,/i.test(audio);
+	if (!isUrl && !isDataUri) {
+		audio = `data:audio/mp3;base64,${audio}`;
+	}
+	const body: IDataObject = {
+		phone,
+		audio,
+	};
+	if (delayMessage && delayMessage > 0) {
+		body.delayMessage = delayMessage;
+	}
+	const response = await this.helpers.httpRequestWithAuthentication.call(this, 'zapiApi', {
+		method: 'POST',
+		url: `${baseUrl}/send-audio`,
+		headers: {
+			'Content-Type': 'application/json',
+		},
+		body,
+		json: true,
+	});
+	return response as IDataObject;
+}
+
+	throw new NodeOperationError(
+		this.getNode(),
+		`Unsupported operation for "messages" resource: ${operation}`,
+		{ itemIndex },
+	);
 }
