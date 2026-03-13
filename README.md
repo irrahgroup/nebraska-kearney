@@ -1,20 +1,51 @@
-# n8n-nodes-zapi
+# @z-api/n8n-nodes-zapi
 
-Este é um **nó do n8n** para integrar com a **Z-API (WhatsApp / mensageria)**.
+n8n community node for Z-API (WhatsApp messaging).
 
-Ele adiciona ao n8n:
+Repository: https://github.com/irrahgroup/nebraska-kearney
 
-- Um tipo de credencial **Z-API** (Instance ID, Instance Token, Client Token).
-- Um node **Z-API WhatsApp** para envio de mensagens de texto via endpoint `/send-text`.
+## Features
 
-[n8n](https://n8n.io/) é uma plataforma de automação de workflows com licença *fair-code*.
+- Z-API credential support (Instance ID, Instance Token, Client Token)
+- Resource and operation structure compatible with n8n community nodes
+- Generic API Call resource for custom endpoints
+- WhatsApp message, group, chat, contact, queue, status, and product operations
 
----
+## Installation
 
-- [Instalação](#instalação)  
-- [Operações](#operações)  
-- [Credenciais](#credenciais)  
-- [Compatibilidade](#compatibilidade)  
-- [Uso](#uso)  
-- [Recursos](#recursos)  
-- [Histórico de versões](#histórico-de-versões)  
+```bash
+npm install @z-api/n8n-nodes-zapi
+```
+
+Restart n8n after installation.
+
+## Credentials
+
+Use the `Z-API` credential and provide:
+
+- Instance ID
+- Instance Token
+- Client Token
+
+## Resources
+
+- API (generic endpoint calls)
+- Messages
+- Groups
+- Chats
+- Contacts
+- Products
+- Queue
+- Status
+- Instance
+
+## Development
+
+```bash
+npm run lint
+npm run build
+```
+
+## License
+
+MIT
