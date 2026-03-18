@@ -7,15 +7,14 @@ import type {
 import { NodeOperationError } from 'n8n-workflow';
 
 export const groupsProperties: INodeProperties[] = [
-
 	{
-		displayName: 'Nome Do Grupo',
+		displayName: 'Group Name',
 		name: 'groupName',
 		type: 'string',
 		default: '',
 		required: true,
-		placeholder: 'Nome do grupo no WhatsApp',
-		description: 'Nome do grupo que será criado na Z-API',
+		placeholder: 'WhatsApp group name',
+		description: 'Name of the group that will be created in Z-API',
 		displayOptions: {
 			show: {
 				resource: ['groups'],
@@ -25,13 +24,12 @@ export const groupsProperties: INodeProperties[] = [
 	},
 
 	{
-		displayName: 'Descrição Do Grupo',
+		displayName: 'Group Description',
 		name: 'groupDescription',
 		type: 'string',
 		default: '',
-//Pode ser alterado posteriormente
-		placeholder: 'Digite a descrição do grupo',
-		description: 'Descrição do grupo que será atualizada',
+		placeholder: 'Enter the group description',
+		description: 'Group description to be updated',
 		displayOptions: {
 			show: {
 				resource: ['groups'],
@@ -46,8 +44,8 @@ export const groupsProperties: INodeProperties[] = [
 		type: 'string',
 		default: '',
 		required: true,
-		placeholder: 'URL ou base64 da foto do grupo',
-		description: 'Nova foto do grupo',
+		placeholder: 'Group photo URL or base64',
+		description: 'New group photo',
 		displayOptions: {
 			show: {
 				resource: ['groups'],
@@ -57,32 +55,42 @@ export const groupsProperties: INodeProperties[] = [
 	},
 
 	{
-		displayName: 'ID Do Grupo (groupId)',
+		displayName: 'Group ID (groupId)',
 		name: 'groupId',
 		type: 'string',
 		default: '',
 		required: true,
 		placeholder: '120363019502650977-group',
 		description:
-			'ID do grupo (Group ID/phone). Exemplo: 120363019502650977-group. Consulte a API de metadados/listagem de grupos para obter este valor.',
+			'Group ID (Group ID/phone). Example: 120363019502650977-group. Use the group metadata/list groups API to get this value.',
 		displayOptions: {
-
 			show: {
 				resource: ['groups'],
-				operation: ['addParticipant', 'addAdmin', 'leave-group', 'removeParticipant',
-					'updateGroupDescription', 'updateGroupPhoto', 'removeAdmin', 'updateGroupName', 'updateGroupSettings', 'groupMetadata', 'sendGroupInvite'],
+				operation: [
+					'addParticipant',
+					'addAdmin',
+					'leave-group',
+					'removeParticipant',
+					'updateGroupDescription',
+					'updateGroupPhoto',
+					'removeAdmin',
+					'updateGroupName',
+					'updateGroupSettings',
+					'groupMetadata',
+					'sendGroupInvite',
+				],
 			},
 		},
 	},
 
 	{
-		displayName: 'Link De Convite Do Grupo',
+		displayName: 'Group Invite Link',
 		name: 'groupInviteLink',
 		type: 'string',
 		default: '',
 		required: true,
 		placeholder: 'https://chat.whatsapp.com/AbCdEfGhIjKlMnOpQrStUv',
-		description: 'Link de convite do grupo do WhatsApp',
+		description: 'WhatsApp group invite link',
 		displayOptions: {
 			show: {
 				resource: ['groups'],
@@ -96,7 +104,8 @@ export const groupsProperties: INodeProperties[] = [
 		name: 'autoInvite',
 		type: 'boolean',
 		default: true,
-		description: 'Whether true, a Z-API enviará convite privado para participantes que não puderem ser adicionados diretamente ao grupo',
+		description:
+			'Whether to send a private invite to participants who cannot be added directly to the group',
 		displayOptions: {
 			show: {
 				resource: ['groups'],
@@ -106,38 +115,37 @@ export const groupsProperties: INodeProperties[] = [
 	},
 
 	{
-		displayName: 'Participantes',
+		displayName: 'Participants',
 		name: 'participants',
 		type: 'fixedCollection',
-		placeholder: 'Adicionar participante',
+		placeholder: 'Add participant',
 		typeOptions: {
 			multipleValues: true,
 		},
 		default: {},
 		options: [
 			{
-				displayName: 'Telefones',
+				displayName: 'Phone Numbers',
 				name: 'phones',
 				values: [
 					{
-						displayName: 'Telefone',
+						displayName: 'Phone',
 						name: 'phone',
 						type: 'string',
 						default: '',
 						placeholder: '5544999999999',
 						description:
-							'Número do participante em formato internacional, apenas dígitos. Exemplo: 5544999999999.',
+							'Participant phone number in international format (digits only). Example: 5544999999999.',
 						required: true,
 					},
 				],
 			},
 		],
 		description:
-			'Lista de números dos participantes. Cada telefone deve estar em formato internacional, apenas dígitos.',
+			'List of participant numbers. Each phone must be in international format (digits only).',
 		displayOptions: {
 			show: {
-				resource: ['groups'],
-				operation: ['createGroup', 'addParticipant', 'addAdmin', 'removeParticipant', 'removeAdmin', 'sendGroupInvite'],
+				resource: ['groups'], operation: ['createGroup', 'addParticipant', 'addAdmin', 'removeParticipant', 'removeAdmin', 'sendGroupInvite'],
 			},
 		},
 	},
@@ -190,7 +198,6 @@ export const groupsProperties: INodeProperties[] = [
 			},
 		},
 	},
-
 ];
 
 export async function executeGroups(
@@ -200,34 +207,28 @@ export async function executeGroups(
 	operation: string,
 	baseUrl: string,
 ): Promise<IDataObject | IDataObject[]> {
-
 	const participants = this.getNodeParameter('participants', itemIndex, {}) as {
 		phones?: Array<{ phone?: string }>;
 	};
 
 	const phones: string[] =
 		participants.phones?.map((entry) => (entry.phone || '').trim()).filter(Boolean) || [];
-
-	// Operações que exigem pelo menos um telefone
 	const operationsRequirePhones = ['createGroup', 'addParticipant', 'addAdmin', 'removeParticipant'];
 	if (!phones.length && operationsRequirePhones.includes(operation)) {
 		throw new NodeOperationError(
 			this.getNode(),
-			'É necessário informar pelo menos um telefone em "Participantes".',
+			'You must provide at least one phone number in "Participants".',
 			{ itemIndex },
 		);
 	}
-
-	// Operação: adicionar participante
 	if (operation === 'addParticipant') {
 		const groupId = this.getNodeParameter('groupId', itemIndex) as string;
 		if (!groupId) {
-			throw new NodeOperationError(this.getNode(), 'É necessário informar o ID do grupo.', { itemIndex });
+			throw new NodeOperationError(this.getNode(), 'Group ID is required.', { itemIndex });
 		}
 
 		const autoInvite = this.getNodeParameter('autoInvite', itemIndex, true) as boolean;
-
-		const body: IDataObject = { groupId, phones, autoInvite, };
+		const body: IDataObject = { groupId, phones, autoInvite };
 
 		const response = await this.helpers.httpRequestWithAuthentication.call(this, 'zapiApi', {
 			method: 'POST',
@@ -239,10 +240,7 @@ export async function executeGroups(
 
 		return response as IDataObject;
 	}
-
-	// Operação: criar grupo
 	if (operation === 'createGroup') {
-
 		const groupDescription = this.getNodeParameter('groupDescription', itemIndex) as string;
 		const groupName = this.getNodeParameter('groupName', itemIndex) as string;
 		const autoInvite = this.getNodeParameter('autoInvite', itemIndex, true) as boolean;
@@ -259,14 +257,11 @@ export async function executeGroups(
 
 		return response as IDataObject;
 	}
-
-	// Operação: adicionar admin
 	if (operation === 'addAdmin') {
-
 		const groupId = this.getNodeParameter('groupId', itemIndex) as string;
 
 		if (!groupId) {
-			throw new NodeOperationError(this.getNode(), 'É necessário informar o ID do grupo.', { itemIndex });
+			throw new NodeOperationError(this.getNode(), 'Group ID is required.', { itemIndex });
 		}
 
 		const body: IDataObject = { groupId, phones };
@@ -281,13 +276,11 @@ export async function executeGroups(
 
 		return response as IDataObject;
 	}
-
-	// Operação: sair do grupo
 	if (operation === 'leave-group') {
 		const groupId = this.getNodeParameter('groupId', itemIndex) as string;
 
 		if (!groupId) {
-			throw new NodeOperationError(this.getNode(), 'É necessário informar o ID do grupo.', { itemIndex });
+			throw new NodeOperationError(this.getNode(), 'Group ID is required.', { itemIndex });
 		}
 
 		const body: IDataObject = { groupId };
@@ -302,19 +295,17 @@ export async function executeGroups(
 
 		return response as IDataObject;
 	}
-
-	// Operação: remover participante
 	if (operation === 'removeParticipant') {
 		const groupId = this.getNodeParameter('groupId', itemIndex) as string;
 
 		if (!groupId) {
-			throw new NodeOperationError(this.getNode(), 'É necessário informar o ID do grupo.', { itemIndex });
+			throw new NodeOperationError(this.getNode(), 'Group ID is required.', { itemIndex });
 		}
 
 		if (!phones.length) {
 			throw new NodeOperationError(
 				this.getNode(),
-				'É necessário informar pelo menos um telefone em "Participantes".',
+				'You must provide at least one phone number in "Participants".',
 				{ itemIndex },
 			);
 		}
@@ -336,13 +327,13 @@ export async function executeGroups(
 		const groupId = this.getNodeParameter('groupId', itemIndex) as string;
 
 		if (!groupId) {
-			throw new NodeOperationError(this.getNode(), 'É necessário informar o ID do grupo.', { itemIndex });
+			throw new NodeOperationError(this.getNode(), 'Group ID is required.', { itemIndex });
 		}
 
 		if (!phones.length) {
 			throw new NodeOperationError(
 				this.getNode(),
-				'É necessário informar pelo menos um telefone em "Participantes".',
+				'You must provide at least one phone number in "Participants".',
 				{ itemIndex },
 			);
 		}
@@ -359,18 +350,18 @@ export async function executeGroups(
 
 		return response as IDataObject;
 	}
-
-
 	if (operation === 'updateGroupDescription') {
 		const groupId = this.getNodeParameter('groupId', itemIndex) as string;
 		const groupDescription = this.getNodeParameter('groupDescription', itemIndex) as string;
 
 		if (!groupId) {
-			throw new NodeOperationError(this.getNode(), 'É necessário informar o ID do grupo.', { itemIndex });
+			throw new NodeOperationError(this.getNode(), 'Group ID is required.', { itemIndex });
 		}
 
 		if (!groupDescription) {
-			throw new NodeOperationError(this.getNode(), 'É necessário informar a descrição do grupo.', { itemIndex });
+			throw new NodeOperationError(this.getNode(), 'Group description is required.', {
+				itemIndex,
+			});
 		}
 
 		const body: IDataObject = {
@@ -394,11 +385,11 @@ export async function executeGroups(
 		const groupPhoto = this.getNodeParameter('groupPhoto', itemIndex) as string;
 
 		if (!groupId) {
-			throw new NodeOperationError(this.getNode(), 'É necessário informar o ID do grupo.', { itemIndex });
+			throw new NodeOperationError(this.getNode(), 'Group ID is required.', { itemIndex });
 		}
 
 		if (!groupPhoto) {
-			throw new NodeOperationError(this.getNode(), 'É necessário informar a foto do grupo.', { itemIndex });
+			throw new NodeOperationError(this.getNode(), 'Group photo is required.', { itemIndex });
 		}
 
 		const body: IDataObject = {
@@ -422,10 +413,10 @@ export async function executeGroups(
 		const groupName = this.getNodeParameter('groupName', itemIndex) as string;
 
 		if (!groupId) {
-			throw new NodeOperationError(this.getNode(), 'É necessário informar o ID do grupo.', { itemIndex });
+			throw new NodeOperationError(this.getNode(), 'Group ID is required.', { itemIndex });
 		}
 		if (!groupName) {
-			throw new NodeOperationError(this.getNode(), 'É necessário informar o nome do grupo.', { itemIndex });
+			throw new NodeOperationError(this.getNode(), 'Group name is required.', { itemIndex });
 		}
 		const body: IDataObject = {
 			groupId,
@@ -445,15 +436,15 @@ export async function executeGroups(
 		const groupId = this.getNodeParameter('groupId', itemIndex) as string;
 
 		if (!groupId) {
-			throw new NodeOperationError(this.getNode(), 'É necessário informar o ID do grupo (phone).', { itemIndex });
+			throw new NodeOperationError(this.getNode(), 'Group ID (phone) is required.', {
+				itemIndex,
+			});
 		}
 
 		const adminOnlyMessage = this.getNodeParameter('adminOnlyMessage', itemIndex, true) as boolean;
 		const adminOnlySettings = this.getNodeParameter('adminOnlySettings', itemIndex, true) as boolean;
 		const requireAdminApproval = this.getNodeParameter('requireAdminApproval', itemIndex, true) as boolean;
 		const adminOnlyAddMember = this.getNodeParameter('adminOnlyAddMember', itemIndex, true) as boolean;
-
-		// Corpo da requisição com `phone` ao invés de `groupId`
 		const body: IDataObject = {
 			phone: groupId,
 			adminOnlyMessage,
@@ -473,7 +464,11 @@ export async function executeGroups(
 
 			return response as IDataObject;
 		} catch (error) {
-			throw new NodeOperationError(this.getNode(), `Erro ao atualizar as configurações do grupo: ${error.message}`, { itemIndex });
+			throw new NodeOperationError(
+				this.getNode(),
+				`Error updating group settings: ${(error as Error).message}`,
+				{ itemIndex },
+			);
 		}
 	}
 
@@ -483,7 +478,7 @@ export async function executeGroups(
 		if (!groupInviteLink) {
 			throw new NodeOperationError(
 				this.getNode(),
-				'É necessário informar o link de convite do grupo.',
+				'Group invite link is required.',
 				{ itemIndex },
 			);
 		}
@@ -510,7 +505,7 @@ export async function executeGroups(
 		if (!groupId) {
 			throw new NodeOperationError(
 				this.getNode(),
-				'É necessário informar o ID do grupo.',
+				'Group ID is required.',
 				{ itemIndex },
 			);
 		}
@@ -527,8 +522,6 @@ export async function executeGroups(
 
 		return response as IDataObject;
 	}
-
-	// Operação: enviar convite manual
 	if (operation === 'sendGroupInvite') {
 		const groupId = this.getNodeParameter('groupId', itemIndex) as string;
 		const participants = this.getNodeParameter('participants', itemIndex, {}) as {
@@ -539,18 +532,16 @@ export async function executeGroups(
 			participants.phones?.map((entry) => (entry.phone || '').trim()).filter(Boolean) || [];
 
 		if (!groupId) {
-			throw new NodeOperationError(this.getNode(), 'É necessário informar o ID do grupo.', {
+			throw new NodeOperationError(this.getNode(), 'Group ID is required.', {
 				itemIndex,
 			});
 		}
 
 		if (!phones.length) {
-			throw new NodeOperationError(this.getNode(), 'É necessário informar pelo menos um telefone.', {
+			throw new NodeOperationError(this.getNode(), 'You must provide at least one phone number.', {
 				itemIndex,
 			});
 		}
-
-		// gerar o link de convite do grupo
 		const invitationResponse = await this.helpers.httpRequestWithAuthentication.call(
 			this,
 			'zapiApi',
@@ -561,10 +552,9 @@ export async function executeGroups(
 					'Content-Type': 'application/json',
 				},
 				json: true,
-			}
+			},
 		);
 
-		// Extrair o link de forma segura (variações de resposta)
 		const invitationResponseData = invitationResponse as IDataObject;
 		const nestedResponse =
 			typeof invitationResponseData.response === 'object' && invitationResponseData.response !== null
@@ -581,12 +571,10 @@ export async function executeGroups(
 		if (!invitationLink) {
 			throw new NodeOperationError(
 				this.getNode(),
-				`Não foi possível gerar o link de convite (resposta: ${JSON.stringify(invitationResponse)})`,
-				{ itemIndex }
+				`Could not generate the invite link (response: ${JSON.stringify(invitationResponse)})`,
+				{ itemIndex },
 			);
 		}
-
-		// Enviar mensagem com o convite para cada telefone
 		const sendResponses: IDataObject[] = [];
 
 		for (const phone of phones) {
@@ -599,10 +587,10 @@ export async function executeGroups(
 					headers: { 'Content-Type': 'application/json' },
 					body: {
 						phone,
-						message: `Você foi convidado para o grupo! Link: ${invitationLink}`,
+						message: `You have been invited to the group! Link: ${invitationLink}`,
 					},
 					json: true,
-				}
+				},
 			);
 
 			sendResponses.push(sendResponse);
@@ -613,7 +601,7 @@ export async function executeGroups(
 
 	throw new NodeOperationError(
 		this.getNode(),
-		`Operação não suportada para o recurso "groups": ${operation}`,
+		`Operation not supported for the "groups" resource: ${operation}`,
 		{ itemIndex },
 	);
 }

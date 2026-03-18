@@ -212,20 +212,17 @@ export async function executeApi(
 		throw new NodeOperationError(this.getNode(), 'Endpoint is required.', { itemIndex });
 	}
 
-	// Fixed collections
 	const queryFc = this.getNodeParameter('apiCallQuery', itemIndex, {}) as IDataObject;
 	const headersFc = this.getNodeParameter('apiCallHeaders', itemIndex, {}) as IDataObject;
 
 	const qs = toKeyValueObject((queryFc.parameters as IDataObject[]) ?? []);
 	const headers = toKeyValueObject((headersFc.headers as IDataObject[]) ?? []);
 
-	// Body JSON
 	const bodyParam = this.getNodeParameter('apiCallBody', itemIndex, {}) as unknown;
 	const body = parseJsonParameter(bodyParam, () => {
 		return new NodeOperationError(this.getNode(), 'Invalid JSON body.', { itemIndex });
 	});
 
-	// URL: accept full URL or relative path
 	const isFullUrl = /^https?:\/\//i.test(endpointInput);
 	const endpoint = endpointInput.startsWith('/') ? endpointInput : `/${endpointInput}`;
 	const url = isFullUrl ? endpointInput : `${baseUrl}${endpoint}`;

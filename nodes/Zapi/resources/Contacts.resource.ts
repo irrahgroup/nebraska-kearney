@@ -8,14 +8,14 @@ import { NodeOperationError } from 'n8n-workflow';
 
 export const contactsProperties: INodeProperties[] = [
 	{
-		displayName: 'Telefone',
+		displayName: 'Phone',
 		name: 'phone',
 		type: 'string',
 		default: '',
 		required: true,
 		placeholder: '5511999999999',
 		description:
-			'Número do contato, em formato internacional, apenas dígitos. Exemplo: 5511999999999.',
+			'Contact phone number in international format (digits only). Example: 5511999999999.',
 		displayOptions: {
 			show: {
 				resource: ['contacts'],
@@ -32,18 +32,13 @@ export async function executeContacts(
 	operation: string,
 	baseUrl: string,
 ): Promise<IDataObject | IDataObject[]> {
-
-	// ---- OPERAÇÕES QUE USAM "phone" ----
 	if (['phoneExists', 'getContactMetadata', 'getContactProfilePicture'].includes(operation)) {
-
 		const phone = this.getNodeParameter('phone', itemIndex) as string;
 
 		if (!phone) {
-			throw new NodeOperationError(
-				this.getNode(),
-				'É necessário informar o telefone para esta operação.',
-				{ itemIndex },
-			);
+			throw new NodeOperationError(this.getNode(), 'A phone number is required for this operation.', {
+				itemIndex,
+			});
 		}
 
 		if (operation === 'phoneExists') {
@@ -76,8 +71,6 @@ export async function executeContacts(
 			return response as IDataObject;
 		}
 	}
-
-	// ---- OPERAÇÃO LISTAR CONTATOS ----
 	if (operation === 'listContacts') {
 		const url = `${baseUrl}/contacts`;
 		const response = await this.helpers.httpRequestWithAuthentication.call(
@@ -92,11 +85,9 @@ export async function executeContacts(
 		);
 		return [{ json: response }];
 	}
-
-	// ---- OPERAÇÃO DESCONHECIDA ----
 	throw new NodeOperationError(
 		this.getNode(),
-		`Operação não suportada para o recurso "contacts": ${operation}`,
+		`Operation not supported for the "contacts" resource: ${operation}`,
 		{ itemIndex },
 	);
 }

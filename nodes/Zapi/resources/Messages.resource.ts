@@ -1052,7 +1052,7 @@ export async function executeMessages(
 		if (!extension && document.startsWith('data:')) {
 			const mimeMatch = document.match(/^data:([^;]+);/);
 			if (mimeMatch) {
-				const mime = mimeMatch[1]; // e.g.: application/pdf
+				const mime = mimeMatch[1];
 				const mimeToExt: Record<string, string> = {
 					'application/pdf': 'pdf',
 					'application/msword': 'doc',

@@ -1,0 +1,44 @@
+{
+  "name": "Z-API - List chats",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        220,
+        300
+      ],
+      "name": "Manual Trigger"
+    },
+    {
+      "parameters": {
+        "resource": "chats",
+        "operation": "listChats"
+      },
+      "type": "@z-api/n8n-nodes-zapi.zapi",
+      "typeVersion": 1,
+      "position": [
+        520,
+        300
+      ],
+      "name": "List Chats"
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "List Chats",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

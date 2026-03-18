@@ -8,12 +8,13 @@ import { NodeOperationError } from 'n8n-workflow';
 
 export const instanceProperties: INodeProperties[] = [
 	{
-		displayName: 'Confirmação',
+		displayName: 'Confirmation',
 		name: 'confirmDisconnect',
 		type: 'boolean',
 		default: false,
 		required: true,
-		description: 'Whether Marque esta opção para confirmar que deseja desconectar o telefone desta instância Z-API',
+		description:
+			'Whether to confirm that you want to disconnect the phone from this Z-API instance',
 		displayOptions: {
 			show: {
 				resource: ['instance'],
@@ -28,11 +29,11 @@ export const instanceProperties: INodeProperties[] = [
 		type: 'string',
 		default: '',
 		required: true,
-		description: 'ID da instância Z-API',
+		description: 'Z-API instance ID',
 		displayOptions: {
 			show: {
 				resource: ['instance'],
-				operation: ['getQRCodeBytes', 'getQRCodeImage','getPhoneCode'],
+				operation: ['getQRCodeBytes', 'getQRCodeImage', 'getPhoneCode'],
 			},
 		},
 	},
@@ -43,29 +44,28 @@ export const instanceProperties: INodeProperties[] = [
 		typeOptions: { password: true },
 		default: '',
 		required: true,
-		description: 'Token da instância Z-API',
+		description: 'Z-API instance token',
 		displayOptions: {
 			show: {
 				resource: ['instance'],
-				operation: ['getQRCodeBytes', 'getQRCodeImage','getPhoneCode'],
+				operation: ['getQRCodeBytes', 'getQRCodeImage', 'getPhoneCode'],
 			},
 		},
 	},
 	{
-	displayName: 'Phone Number',
-	name: 'phoneNumber',
-	type: 'string',
-	default: '',
-	required: true,
-	description: 'Número de telefone com DDI e DDD (ex: 5511999999999)',
-	displayOptions: {
+		displayName: 'Phone Number',
+		name: 'phoneNumber',
+		type: 'string',
+		default: '',
+		required: true,
+		description: 'Phone number with country code (example: 5511999999999)',
+		displayOptions: {
 			show: {
 				resource: ['instance'],
-				operation: ['getQRCodeBytes', 'getQRCodeImage','getPhoneCode'],
+				operation: ['getQRCodeBytes', 'getQRCodeImage', 'getPhoneCode'],
 			},
 		},
 	},
-
 ];
 
 export async function executeInstance(
@@ -84,7 +84,7 @@ export async function executeInstance(
 		if (!confirmDisconnect) {
 			throw new NodeOperationError(
 				this.getNode(),
-				'É necessário marcar a confirmação para desconectar o telefone da instância.',
+				'You must confirm disconnection before disconnecting the instance phone.',
 				{ itemIndex },
 			);
 		}
@@ -107,8 +107,6 @@ export async function executeInstance(
 
 		return response as IDataObject;
 	}
-
-	// Operação: obter QR Code da instância
 	if (operation === 'getQRCodeBytes') {
 		const instanceId = this.getNodeParameter('instanceId', itemIndex) as string;
 		const instanceToken = this.getNodeParameter('instanceToken', itemIndex) as string;
@@ -116,12 +114,10 @@ export async function executeInstance(
 		if (!instanceId || !instanceToken) {
 			throw new NodeOperationError(
 				this.getNode(),
-				'Instance ID e Token são obrigatórios.',
-				{ itemIndex }
+				'Instance ID and instance token are required.',
+				{ itemIndex },
 			);
 		}
-
-		// Buscar QR Code
 		const qrResponse = (await this.helpers.httpRequestWithAuthentication.call(
 			this,
 			'zapiApi',
@@ -129,10 +125,8 @@ export async function executeInstance(
 				method: 'GET',
 				url: `${baseUrl}/qr-code`,
 				json: true,
-			}
+			},
 		)) as IDataObject;
-
-		// CASO A INSTÂNCIA JÁ ESTEJA CONECTADA
 		if (qrResponse.connected === true) {
 			return [
 				{
@@ -143,32 +137,26 @@ export async function executeInstance(
 				},
 			];
 		}
-
-		// CASO O QR ESTEJA DISPONÍVEL
 		const qrCode = qrResponse.qrCode as string | undefined;
 
 		if (!qrCode) {
 			throw new NodeOperationError(
 				this.getNode(),
-				`Não foi possível obter o QR Code (resposta: ${JSON.stringify(qrResponse)})`,
-				{ itemIndex }
+				`Could not fetch QR code (response: ${JSON.stringify(qrResponse)})`,
+				{ itemIndex },
 			);
 		}
 
 		return [
 			{
 				json: {
-					qrCode, // base64
+					qrCode,
 					status: 'QRCODE',
 				},
 			},
 		];
 	}
-
-	// Operação: obter QR Code da instância (imagem)
 	if (operation === 'getQRCodeImage') {
-
-		// Buscar QR Code como imagem
 		const qrResponse = await this.helpers.httpRequestWithAuthentication.call(
 			this,
 			'zapiApi',
@@ -176,10 +164,8 @@ export async function executeInstance(
 				method: 'GET',
 				url: `${baseUrl}/qr-code/image`,
 				encoding: 'arraybuffer',
-			}
+			},
 		);
-
-		// Converter imagem para base64
 		let qrCodeBuffer: Buffer;
 		if (typeof qrResponse === 'string') {
 			qrCodeBuffer = Buffer.from(qrResponse);
@@ -198,20 +184,16 @@ export async function executeInstance(
 			},
 		];
 	}
-
-	// Operação: obter phone code / validar número
 	if (operation === 'getPhoneCode') {
 		const phoneNumber = this.getNodeParameter('phoneNumber', itemIndex) as string;
 
 		if (!phoneNumber) {
 			throw new NodeOperationError(
 				this.getNode(),
-				'É necessário informar o número de telefone.',
-				{ itemIndex }
+				'Phone number is required.',
+				{ itemIndex },
 			);
 		}
-
-		// Buscar phone code
 		const phoneCodeResponse = await this.helpers.httpRequestWithAuthentication.call(
 			this,
 			'zapiApi',
@@ -219,7 +201,7 @@ export async function executeInstance(
 				method: 'GET',
 				url: `${baseUrl}/phone-code/${phoneNumber}`,
 				json: true,
-			}
+			},
 		);
 
 		return [
@@ -228,11 +210,9 @@ export async function executeInstance(
 			},
 		];
 	}
-
-
 	throw new NodeOperationError(
 		this.getNode(),
-		`Operação não suportada para o recurso "instance": ${operation}`,
+		`Operation not supported for the "instance" resource: ${operation}`,
 		{ itemIndex },
 	);
 }
