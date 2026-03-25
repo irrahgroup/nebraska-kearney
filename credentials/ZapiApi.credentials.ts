@@ -22,7 +22,7 @@ export class ZapiApi implements ICredentialType {
 			type: 'string',
 			default: '',
 			required: true,
-			description: 'ID da instância na Z-API.',
+			description: 'The Z-API instance ID.',
 		},
 		{
 			displayName: 'Instance Token',
@@ -33,7 +33,7 @@ export class ZapiApi implements ICredentialType {
 			},
 			default: '',
 			required: true,
-			description: 'Token da instância na Z-API.',
+			description: 'The Z-API instance token.',
 		},
 		{
 			displayName: 'Client Token',
@@ -44,8 +44,7 @@ export class ZapiApi implements ICredentialType {
 			},
 			default: '',
 			required: true,
-			description:
-				'Account Security Token da Z-API. Será enviado no header "Client-Token".',
+			description: 'The Z-API account security token. Sent in the "Client-Token" header.',
 		},
 	];
 

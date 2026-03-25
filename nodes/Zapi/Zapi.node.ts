@@ -295,7 +295,7 @@ export class Zapi implements INodeType {
 
 	async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
 		const items = this.getInputData();
-		const returnData: IDataObject[] = [];
+		const returnData: INodeExecutionData[] = [];
 
 		const credentials = await this.getCredentials('zapiApi');
 
@@ -310,13 +310,30 @@ export class Zapi implements INodeType {
 		}
 
 		const baseUrl = `https://api.z-api.io/instances/${instanceId}/token/${instanceToken}`;
+		const toExecutionData = (
+			entry: IDataObject | INodeExecutionData,
+			itemIndex: number,
+		): INodeExecutionData => {
+			if ('json' in entry) {
+				const executionItem = entry as INodeExecutionData;
+				return {
+					...executionItem,
+					pairedItem: executionItem.pairedItem ?? { item: itemIndex },
+				};
+			}
+
+			return {
+				json: entry,
+				pairedItem: { item: itemIndex },
+			};
+		};
 
 		for (let i = 0; i < items.length; i++) {
 			try {
 				const resource = this.getNodeParameter('resource', i) as ZapiResource;
 				const operation = this.getNodeParameter('operation', i) as string;
 
-				let result: IDataObject | IDataObject[] | undefined;
+				let result: IDataObject | IDataObject[] | INodeExecutionData | INodeExecutionData[] | undefined;
 
 				if (resource === 'messages') {
 					result = await executeMessages.call(this, items, i, operation, baseUrl);
@@ -343,19 +360,22 @@ export class Zapi implements INodeType {
 				}
 
 				if (Array.isArray(result)) {
-					for (const entry of result) returnData.push(entry);
+					for (const entry of result) returnData.push(toExecutionData(entry, i));
 				} else if (result) {
-					returnData.push(result);
+					returnData.push(toExecutionData(result, i));
 				}
 			} catch (error) {
 				if (this.continueOnFail()) {
-					returnData.push({ error: (error as Error).message, itemIndex: i });
+					returnData.push({
+						json: { error: (error as Error).message, itemIndex: i },
+						pairedItem: { item: i },
+					});
 					continue;
 				}
 				throw new NodeOperationError(this.getNode(), error as Error, { itemIndex: i });
 			}
 		}
 
-		return [this.helpers.returnJsonArray(returnData)];
+		return [returnData];
 	}
 }
