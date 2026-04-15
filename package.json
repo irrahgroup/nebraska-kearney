@@ -28,7 +28,7 @@
     "lint": "n8n-node lint",
     "lint:fix": "n8n-node lint --fix",
     "release": "n8n-node release",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "n8n-node prerelease"
   },
   "files": [
     "dist"
@@ -48,9 +48,10 @@
     ]
   },
   "devDependencies": {
-    "@n8n/node-cli": "^0.23.1",
+    "@n8n/node-cli": "0.23.1",
     "@types/node": "^24.9.1",
     "eslint": "9.32.0",
+    "n8n-workflow": "2.13.1",
     "prettier": "3.6.2",
     "release-it": "^19.0.4",
     "typescript": "5.9.2"
