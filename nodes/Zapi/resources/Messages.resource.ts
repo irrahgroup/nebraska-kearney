@@ -545,6 +545,47 @@ export const messagesProperties: INodeProperties[] = [
 		},
 	},
 	{
+		displayName: 'View Once',
+		name: 'viewOnce',
+		type: 'boolean',
+		default: false,
+		description: 'Whether the video should be viewable only once',
+		displayOptions: {
+			show: {
+				resource: ['messages'],
+				operation: ['sendVideo'],
+			},
+		},
+	},
+	{
+		displayName: 'Send Asynchronously',
+		name: 'async',
+		type: 'boolean',
+		default: false,
+		description: 'Whether Z-API should process the video send request asynchronously',
+		displayOptions: {
+			show: {
+				resource: ['messages'],
+				operation: ['sendVideo'],
+			},
+		},
+	},
+	{
+		displayName: 'Reply Message ID (messageId)',
+		name: 'videoMessageId',
+		type: 'string',
+		default: '',
+		placeholder: 'D241XXXX732339502B68',
+		description:
+			'Optional WhatsApp message ID to reply to. Sent to Z-API as "messageId".',
+		displayOptions: {
+			show: {
+				resource: ['messages'],
+				operation: ['sendVideo'],
+			},
+		},
+	},
+	{
 		displayName: 'Sticker (URL or Base64)',
 		name: 'sticker',
 		type: 'string',
@@ -1309,7 +1350,7 @@ if (operation === 'sendVideo') {
 	const caption = this.getNodeParameter('caption', itemIndex, '') as string;
 	const viewOnce = this.getNodeParameter('viewOnce', itemIndex, false) as boolean;
 	const async = this.getNodeParameter('async', itemIndex, false) as boolean;
-	const messageId = this.getNodeParameter('messageId', itemIndex, '') as string;
+	const videoMessageId = this.getNodeParameter('videoMessageId', itemIndex, '') as string;
 	const delayMessage = this.getNodeParameter('delayMessage', itemIndex, 0) as number;
 
 	if (!phone) {
@@ -1339,7 +1380,7 @@ if (operation === 'sendVideo') {
 	if (caption && caption.length > 0) body.caption = caption;
 	if (typeof viewOnce === 'boolean') body.viewOnce = viewOnce;
 	if (typeof async === 'boolean') body.async = async;
-	if (messageId && messageId.length > 0) body.messageId = messageId;
+	if (videoMessageId && videoMessageId.length > 0) body.messageId = videoMessageId;
 
 	if (delayMessage && delayMessage > 0) {
 		body.delayMessage = delayMessage;

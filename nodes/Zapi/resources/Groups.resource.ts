@@ -3,8 +3,9 @@ import type {
 	IExecuteFunctions,
 	INodeExecutionData,
 	INodeProperties,
+	JsonObject,
 } from 'n8n-workflow';
-import { NodeOperationError } from 'n8n-workflow';
+import { NodeApiError, NodeOperationError } from 'n8n-workflow';
 
 export const groupsProperties: INodeProperties[] = [
 	{
@@ -464,11 +465,7 @@ export async function executeGroups(
 
 			return response as IDataObject;
 		} catch (error) {
-			throw new NodeOperationError(
-				this.getNode(),
-				`Error updating group settings: ${(error as Error).message}`,
-				{ itemIndex },
-			);
+			throw new NodeApiError(this.getNode(), error as JsonObject, { itemIndex });
 		}
 	}
 

@@ -24,35 +24,6 @@ export const instanceProperties: INodeProperties[] = [
 	},
 
 	{
-		displayName: 'Instance ID',
-		name: 'instanceId',
-		type: 'string',
-		default: '',
-		required: true,
-		description: 'Z-API instance ID',
-		displayOptions: {
-			show: {
-				resource: ['instance'],
-				operation: ['getQRCodeBytes', 'getQRCodeImage', 'getPhoneCode'],
-			},
-		},
-	},
-	{
-		displayName: 'Instance Token',
-		name: 'instanceToken',
-		type: 'string',
-		typeOptions: { password: true },
-		default: '',
-		required: true,
-		description: 'Z-API instance token',
-		displayOptions: {
-			show: {
-				resource: ['instance'],
-				operation: ['getQRCodeBytes', 'getQRCodeImage', 'getPhoneCode'],
-			},
-		},
-	},
-	{
 		displayName: 'Phone Number',
 		name: 'phoneNumber',
 		type: 'string',
@@ -62,7 +33,7 @@ export const instanceProperties: INodeProperties[] = [
 		displayOptions: {
 			show: {
 				resource: ['instance'],
-				operation: ['getQRCodeBytes', 'getQRCodeImage', 'getPhoneCode'],
+				operation: ['getPhoneCode'],
 			},
 		},
 	},
@@ -108,16 +79,6 @@ export async function executeInstance(
 		return response as IDataObject;
 	}
 	if (operation === 'getQRCodeBytes') {
-		const instanceId = this.getNodeParameter('instanceId', itemIndex) as string;
-		const instanceToken = this.getNodeParameter('instanceToken', itemIndex) as string;
-
-		if (!instanceId || !instanceToken) {
-			throw new NodeOperationError(
-				this.getNode(),
-				'Instance ID and instance token are required.',
-				{ itemIndex },
-			);
-		}
 		const qrResponse = (await this.helpers.httpRequestWithAuthentication.call(
 			this,
 			'zapiApi',

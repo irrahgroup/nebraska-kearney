@@ -1,7 +1,7 @@
 {
   "name": "@z-api/n8n-nodes-zapi",
-  "version": "0.1.4",
-  "description": "n8n community node para integrar com a Z-API (WhatsApp / mensageria).",
+  "version": "0.1.5",
+  "description": "n8n community node to integrate with Z-API (WhatsApp messaging).",
   "license": "MIT",
   "homepage": "https://github.com/irrahgroup/nebraska-kearney#readme",
   "bugs": {
@@ -48,7 +48,7 @@
     ]
   },
   "devDependencies": {
-    "@n8n/node-cli": "*",
+    "@n8n/node-cli": "^0.23.1",
     "@types/node": "^24.9.1",
     "eslint": "9.32.0",
     "prettier": "3.6.2",

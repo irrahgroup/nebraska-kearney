@@ -4,8 +4,9 @@ import type {
 	INodeExecutionData,
 	INodeType,
 	INodeTypeDescription,
+	JsonObject,
 } from 'n8n-workflow';
-import { NodeOperationError } from 'n8n-workflow';
+import { NodeApiError, NodeConnectionTypes, NodeOperationError } from 'n8n-workflow';
 
 import { messagesProperties, executeMessages } from './resources/Messages.resource';
 import { groupsProperties, executeGroups } from './resources/Groups.resource';
@@ -41,8 +42,8 @@ export class Zapi implements INodeType {
 		defaults: {
 			name: 'Z-API WhatsApp',
 		},
-		inputs: ['main'],
-		outputs: ['main'],
+		inputs: [NodeConnectionTypes.Main],
+		outputs: [NodeConnectionTypes.Main],
 		credentials: [
 			{
 				name: 'zapiApi',
@@ -365,14 +366,19 @@ export class Zapi implements INodeType {
 					returnData.push(toExecutionData(result, i));
 				}
 			} catch (error) {
+				const executionError =
+					error instanceof NodeOperationError
+						? error
+						: new NodeApiError(this.getNode(), error as JsonObject, { itemIndex: i });
+
 				if (this.continueOnFail()) {
 					returnData.push({
-						json: { error: (error as Error).message, itemIndex: i },
+						json: { error: executionError.message, itemIndex: i },
 						pairedItem: { item: i },
 					});
 					continue;
 				}
-				throw new NodeOperationError(this.getNode(), error as Error, { itemIndex: i });
+				throw executionError;
 			}
 		}
 

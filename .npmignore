@@ -1,4 +1,4 @@
-# Ignorar tudo, exceto o que está explicitamente permitido no `files` do package.json
+# Ignore everything except what is explicitly allowed by the package.json `files` field
 *
 !dist/
 !package.json
